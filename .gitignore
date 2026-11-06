@@ -9,3 +9,8 @@ __pycache__/
 .pytest_cache/
 *.log
 desktop.ini
+data/*.db
+data/*.db-*
+logs/
+.coverage
+htmlcov/
