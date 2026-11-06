@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <title>AI Study Assistant — ПР14</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 48px auto;
+      padding: 0 18px;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    main {
+      background: white;
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px #2232;
+    }
+
+    input, button {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+
+    input {
+      width: 95%;
+      border: 1px solid #bcc7d7;
+    }
+
+    button {
+      margin-top: 12px;
+      background: #2264d1;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #eef2f9;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    small {
+      color: #52627a;
+    }
+  </style>
+</head>
+
+<body>
+<main>
+  <h1>AI Study Assistant</h1>
+
+  <p>
+    Технічний прототип ПР14 —
+    тестовий mock-провайдер.
+  </p>
+
+  <label for="q">Запитання за матеріалами</label>
+
+  <input
+    id="q"
+    value="Як створити Git-репозиторій?"
+    maxlength="500"
+  >
+
+  <button id="send">Надіслати</button>
+
+  <p id="state">Готовий до запиту.</p>
+
+  <pre id="result" aria-live="polite"></pre>
+
+  <small>
+    Справжня AI-модель буде додана
+    на наступних етапах.
+  </small>
+</main>
+
+<script>
+const state = document.getElementById('state');
+const result = document.getElementById('result');
+const button = document.getElementById('send');
+
+const sleep = ms =>
+  new Promise(resolve => setTimeout(resolve, ms));
+
+async function send() {
+  button.disabled = true;
+  result.textContent = '';
+  state.textContent = 'Надсилаємо запит...';
+
+  try {
+    const response = await fetch('/api/ask', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        question: document.getElementById('q').value,
+        documents: ['data/notes.md']
+      })
+    });
+
+    const accepted = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        accepted.error?.message || 'Помилка запиту'
+      );
+    }
+
+    let finished = false;
+
+    for (let i = 0; i < 60; i++) {
+      state.textContent =
+        `Обробка запиту ${accepted.request_id}...`;
+
+      const r = await fetch(accepted.status_url);
+      const info = await r.json();
+
+      if (!r.ok) {
+        throw new Error(
+          `${info.error?.kind || 'error'}: ` +
+          `${info.error?.message || 'Помилка'}`
+        );
+      }
+
+      if (info.status === 'completed') {
+        state.textContent = 'Готово (mock).';
+
+        result.textContent = JSON.stringify(
+          info.result,
+          null,
+          2
+        );
+
+        finished = true;
+        break;
+      }
+
+      if (info.status === 'cancelled') {
+        state.textContent = 'Запит скасовано.';
+        finished = true;
+        break;
+      }
+
+      await sleep(500);
+    }
+
+    if (!finished) {
+      throw new Error(
+        'Забагато очікування. Перевір журнал сервера.'
+      );
+    }
+
+  } catch (e) {
+    state.textContent = 'Контрольована помилка';
+    result.textContent = e.message;
+
+  } finally {
+    button.disabled = false;
+  }
+}
+
+button.addEventListener('click', send);
+</script>
+
+</body>
+</html>
