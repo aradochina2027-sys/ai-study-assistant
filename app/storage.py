@@ -165,7 +165,11 @@ class SQLiteStorage:
                     400,
                 )
 
-            chunks.append(content)
+            chunks.append(
+    f"<<<DOC:{name}>>>\n"
+    f"{content}\n"
+    f"<<<END_DOC>>>"
+)
 
         self.telemetry.emit(
             request_id,

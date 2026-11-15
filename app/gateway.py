@@ -1,6 +1,7 @@
 from app.models import ProviderRequest, ProviderResult
 from app.providers.base import BaseProvider
 from app.telemetry import Telemetry
+from app.budget import DailyBudget
 
 
 class Gateway:
@@ -8,9 +9,11 @@ class Gateway:
         self,
         provider: BaseProvider,
         telemetry: Telemetry,
+        budget: DailyBudget | None = None,
     ):
         self.provider = provider
         self.telemetry = telemetry
+        self.budget = budget
 
     def complete(
         self,
@@ -23,9 +26,10 @@ class Gateway:
             "provider_call",
         )
 
-        text = "".join(
-            self.provider.stream(request)
-        )
+        if self.budget is not None:
+            self.budget.charge()
+
+        result = self.provider.complete(request)
 
         self.telemetry.emit(
             request.request_id,
@@ -33,7 +37,4 @@ class Gateway:
             "provider_returned",
         )
 
-        return ProviderResult(
-            text=text,
-            model=request.model,
-        )
+        return result

@@ -1,0 +1,446 @@
+{
+  "date_utc": "20261115T141800Z",
+  "provider": "mock",
+  "model": "mock-study-v1",
+  "prompt_version": "study-v1",
+  "repetitions": 2,
+  "overall": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0
+  },
+  "by_kind": {
+    "normal": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    "edge": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "negative": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "adversarial": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "runs": [
+    {
+      "case_id": "n01",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git init — створює Git-репозиторій.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n01",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git init — створює Git-репозиторій.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n02",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — показує стан файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n02",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — показує стан файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n03",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git commit — зберігає зміни в історії.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n03",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git commit — зберігає зміни в історії.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n04",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "list — впорядкована змінювана колекція.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n04",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "list — впорядкована змінювана колекція.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n05",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "dict — колекція пар ключ-значення.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n05",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "dict — колекція пар ключ-значення.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n06",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "CREATE VIEW — створює представлення SQL.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n06",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "CREATE VIEW — створює представлення SQL.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "e01",
+      "kind": "edge",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — показує стан файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "e01",
+      "kind": "edge",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — показує стан файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "x01",
+      "kind": "negative",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "no_evidence",
+        "answer": "У матеріалах немає підтвердженої відповіді.",
+        "sources": []
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "x01",
+      "kind": "negative",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "no_evidence",
+        "answer": "У матеріалах немає підтвердженої відповіді.",
+        "sources": []
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "a01",
+      "kind": "adversarial",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git push — надсилає коміти у віддалений репозиторій.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "a01",
+      "kind": "adversarial",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git push — надсилає коміти у віддалений репозиторій.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "mock-study-v1",
+        "prompt_version": "study-v1",
+        "elapsed_ms": 0.0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    }
+  ]
+}

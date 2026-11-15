@@ -1,0 +1,452 @@
+{
+  "date_utc": "20261115T152258Z",
+  "provider": "recorded",
+  "model": "qwen3:4b",
+  "prompt_version": "study-v4",
+  "repetitions": 2,
+  "overall": {
+    "total": 18,
+    "passed": 14,
+    "failed": 4
+  },
+  "by_kind": {
+    "normal": {
+      "total": 12,
+      "passed": 10,
+      "failed": 2
+    },
+    "edge": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "negative": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "adversarial": {
+      "total": 2,
+      "passed": 0,
+      "failed": 2
+    }
+  },
+  "runs": [
+    {
+      "case_id": "n01",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git init — створення нового Git-репозиторію.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 6022.63,
+        "input_tokens": 1335,
+        "output_tokens": 47,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n01",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git init — створення нового Git-репозиторію.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3915.06,
+        "input_tokens": 1335,
+        "output_tokens": 47,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n02",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — перегляд стану файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3933.2,
+        "input_tokens": 1330,
+        "output_tokens": 42,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n02",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — перегляд стану файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3526.48,
+        "input_tokens": 1330,
+        "output_tokens": 42,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n03",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git commit — збереження змін у локальній історії репозиторію.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 5377.45,
+        "input_tokens": 1325,
+        "output_tokens": 59,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n03",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git commit — збереження змін у локальній історії репозиторію.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 4822.04,
+        "input_tokens": 1325,
+        "output_tokens": 59,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n04",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "Відповідь не містить: list"
+      ],
+      "result": {
+        "status": "ok",
+        "answer": "Список у Python — це впорядкована змінювана колекція елементів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 5169.64,
+        "input_tokens": 1325,
+        "output_tokens": 58,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n04",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "Відповідь не містить: list"
+      ],
+      "result": {
+        "status": "ok",
+        "answer": "Список у Python — це впорядкована змінювана колекція елементів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 4847.98,
+        "input_tokens": 1325,
+        "output_tokens": 58,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n05",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "dict — колекція пар ключ-значення.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 4165.04,
+        "input_tokens": 1333,
+        "output_tokens": 43,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n05",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "dict — колекція пар ключ-значення.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3579.02,
+        "input_tokens": 1333,
+        "output_tokens": 43,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n06",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "Представлення створюється командою CREATE VIEW ... AS SELECT ...",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 4339.76,
+        "input_tokens": 1328,
+        "output_tokens": 48,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n06",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "Представлення створюється командою CREATE VIEW ... AS SELECT ...",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3949.03,
+        "input_tokens": 1328,
+        "output_tokens": 48,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "e01",
+      "kind": "edge",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — перегляд стану файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3905.17,
+        "input_tokens": 1329,
+        "output_tokens": 42,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "e01",
+      "kind": "edge",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git status — перегляд стану файлів.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3572.44,
+        "input_tokens": 1329,
+        "output_tokens": 42,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "x01",
+      "kind": "negative",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "no_evidence",
+        "answer": "У матеріалах немає підтвердженої відповіді.",
+        "sources": []
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 4406.14,
+        "input_tokens": 1328,
+        "output_tokens": 46,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "x01",
+      "kind": "negative",
+      "repetition": 2,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "no_evidence",
+        "answer": "У матеріалах немає підтвердженої відповіді.",
+        "sources": []
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3753.52,
+        "input_tokens": 1328,
+        "output_tokens": 46,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "a01",
+      "kind": "adversarial",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "Відповідь не містить: git push",
+        "Відсутнє джерело: data/notes.md"
+      ],
+      "result": {
+        "status": "no_evidence",
+        "answer": "У матеріалах немає підтвердженої відповіді.",
+        "sources": []
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3574.91,
+        "input_tokens": 1348,
+        "output_tokens": 46,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "a01",
+      "kind": "adversarial",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "Відповідь не містить: git push",
+        "Відсутнє джерело: data/notes.md"
+      ],
+      "result": {
+        "status": "no_evidence",
+        "answer": "У матеріалах немає підтвердженої відповіді.",
+        "sources": []
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v4",
+        "elapsed_ms": 3732.67,
+        "input_tokens": 1348,
+        "output_tokens": 46,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    }
+  ]
+}

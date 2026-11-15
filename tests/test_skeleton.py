@@ -1,6 +1,7 @@
-import json
 
+import json
 from dataclasses import replace
+
 from fastapi.testclient import TestClient
 
 from app.main import create_app
@@ -8,6 +9,7 @@ from app.models import AskInput
 from app.settings import Settings
 
 
+# Створення тестового застосунку
 def make_app(tmp_path, **changes):
     settings = replace(
         Settings(),
@@ -19,15 +21,19 @@ def make_app(tmp_path, **changes):
     return create_app(settings)
 
 
+# ТЕСТ 1. Перевірка всіх рівнів застосунку
 def test_api_through_all_layers(tmp_path):
     api = make_app(tmp_path)
 
     with TestClient(api) as client:
+
+        # Перевірка стану сервера
         health = client.get("/api/health")
 
         assert health.status_code == 200
         assert health.json()["mode"] == "mock"
 
+        # Надсилання запитання
         response = client.post(
             "/api/ask",
             json={
@@ -39,16 +45,13 @@ def test_api_through_all_layers(tmp_path):
 
         request_id = response.json()["request_id"]
 
+        # Отримання результату
         result = client.get(
             response.json()["status_url"]
         )
 
         assert result.status_code == 200
-
-        assert (
-            result.json()["status"]
-            == "completed"
-        )
+        assert result.json()["status"] == "completed"
 
         assert (
             "git init"
@@ -59,6 +62,7 @@ def test_api_through_all_layers(tmp_path):
             "data/notes.md"
         ]
 
+    # Перевірка журналювання всіх рівнів
     log_file = tmp_path / "test.jsonl"
 
     lines = [
@@ -74,16 +78,19 @@ def test_api_through_all_layers(tmp_path):
         if line["request_id"] == request_id
     }
 
-    assert {
+    expected_layers = {
         "controller",
         "service",
         "storage",
         "orchestration",
         "gateway",
         "provider",
-    } <= layers
+    }
+
+    assert expected_layers <= layers
 
 
+# ТЕСТ 2. Перевірка сервісу без HTTP
 def test_service_without_http(tmp_path):
     api = make_app(tmp_path)
 
@@ -98,6 +105,7 @@ def test_service_without_http(tmp_path):
     assert "git push" in result.answer
 
 
+# ТЕСТ 3. Контрольована помилка провайдера
 def test_failure_is_controlled(tmp_path):
     api = make_app(
         tmp_path,
@@ -106,6 +114,7 @@ def test_failure_is_controlled(tmp_path):
     )
 
     with TestClient(api) as client:
+
         accepted = client.post(
             "/api/ask",
             json={
@@ -125,14 +134,13 @@ def test_failure_is_controlled(tmp_path):
 
         assert failed.json()["error"] == {
             "kind": "provider_unavailable",
-            "message": (
-                "Провайдер тимчасово недоступний"
-            ),
+            "message": "Провайдер тимчасово недоступний",
             "retryable": True,
             "request_id": request_id,
         }
 
 
+# ТЕСТ 4. Контрольована помилка JSON
 def test_invalid_json_is_controlled(tmp_path):
     api = make_app(
         tmp_path,
@@ -141,6 +149,7 @@ def test_invalid_json_is_controlled(tmp_path):
     )
 
     with TestClient(api) as client:
+
         accepted = client.post(
             "/api/ask",
             json={
@@ -148,13 +157,16 @@ def test_invalid_json_is_controlled(tmp_path):
             },
         )
 
+        assert accepted.status_code == 202
+
         failed = client.get(
             accepted.json()["status_url"]
         )
 
         assert failed.status_code == 503
 
+        # Оновлена назва помилки для ПР15
         assert (
             failed.json()["error"]["kind"]
-            == "invalid_model_output"
+            == "invalid_output"
         )

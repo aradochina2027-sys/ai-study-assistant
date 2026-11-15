@@ -1,183 +1,690 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="uk">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
 
-  <title>AI Study Assistant — ПР14</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 48px auto;
-      padding: 0 18px;
-      background: #f5f7fb;
-      color: #172033;
-    }
+    <title>AI Study Assistant | PR15</title>
 
-    main {
-      background: white;
-      padding: 24px;
-      border-radius: 14px;
-      box-shadow: 0 4px 24px #2232;
-    }
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-    input, button {
-      padding: 12px;
-      font-size: 16px;
-      border-radius: 8px;
-    }
+        body {
+            margin: 0;
+            padding: 32px 16px;
+            min-height: 100vh;
+            background: #f1f5fb;
+            font-family: Arial, sans-serif;
+            color: #1e293b;
+        }
 
-    input {
-      width: 95%;
-      border: 1px solid #bcc7d7;
-    }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
 
-    button {
-      margin-top: 12px;
-      background: #2264d1;
-      color: white;
-      border: 0;
-      cursor: pointer;
-    }
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
 
-    button:disabled {
-      opacity: 0.5;
-      cursor: wait;
-    }
+        .header h1 {
+            color: #2563eb;
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
 
-    pre {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      background: #eef2f9;
-      padding: 16px;
-      border-radius: 8px;
-    }
+        .header p {
+            color: #64748b;
+        }
 
-    small {
-      color: #52627a;
-    }
-  </style>
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.07);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 21px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 16px;
+            min-height: 125px;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #2563eb;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 9px;
+            font-size: 15px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .secondary {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .danger {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        button:hover:not(:disabled) {
+            filter: brightness(0.95);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 9px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            margin-top: 15px;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .answer {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .sources {
+            margin-top: 16px;
+            color: #475569;
+            font-size: 14px;
+        }
+
+        .source-item {
+            display: inline-block;
+            padding: 7px 11px;
+            background: #e0ecff;
+            color: #1e40af;
+            border-radius: 7px;
+            margin: 5px 5px 0 0;
+        }
+
+        .health {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .health-item {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .small {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 18px;
+            }
+
+            .header h1 {
+                font-size: 26px;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 
 <body>
-<main>
-  <h1>AI Study Assistant</h1>
 
-  <p>
-    Технічний прототип ПР14 —
-    тестовий mock-провайдер.
-  </p>
+<div class="container">
 
-  <label for="q">Запитання за матеріалами</label>
+    <header class="header">
+        <h1>AI Study Assistant</h1>
+        <p>
+            Інтелектуальний навчальний помічник
+            на основі Qwen3 та Ollama
+        </p>
+        <p class="small">
+            Практична робота №15
+        </p>
+    </header>
 
-  <input
-    id="q"
-    value="Як створити Git-репозиторій?"
-    maxlength="500"
-  >
+    <section class="card">
+        <h2>Стан системи</h2>
 
-  <button id="send">Надіслати</button>
+        <div class="health">
+            <div class="health-item">
+                Провайдер:
+                <strong id="provider">Перевірка...</strong>
+            </div>
 
-  <p id="state">Готовий до запиту.</p>
+            <div class="health-item">
+                Модель:
+                <strong id="model">Перевірка...</strong>
+            </div>
 
-  <pre id="result" aria-live="polite"></pre>
+            <div class="health-item">
+                Режим:
+                <strong id="mode">Перевірка...</strong>
+            </div>
+        </div>
 
-  <small>
-    Справжня AI-модель буде додана
-    на наступних етапах.
-  </small>
-</main>
+        <div id="healthStatus" class="status">
+            Перевіряємо сервер...
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Поставити запитання</h2>
+
+        <label for="question">
+            Запитання за навчальними матеріалами
+        </label>
+
+        <textarea
+            id="question"
+            maxlength="500"
+            placeholder="Введіть запитання..."
+        >Як створити Git-репозиторій?</textarea>
+
+        <div class="buttons">
+            <button
+                class="primary"
+                id="sendButton"
+                type="button"
+            >
+                Надіслати запитання
+            </button>
+
+            <button
+                class="secondary"
+                id="clearButton"
+                type="button"
+            >
+                Очистити
+            </button>
+
+            <button
+                class="danger hidden"
+                id="cancelButton"
+                type="button"
+            >
+                Скасувати запит
+            </button>
+        </div>
+
+        <div
+            id="requestStatus"
+            class="status"
+            role="status"
+        >
+            Готовий до запитання.
+        </div>
+    </section>
+
+    <section class="card hidden" id="resultCard">
+        <h2>Відповідь AI</h2>
+
+        <div
+            id="answer"
+            class="answer"
+            aria-live="polite"
+        ></div>
+
+        <div id="sources" class="sources"></div>
+
+        <p class="small" id="requestId"></p>
+    </section>
+
+    <section class="card">
+        <h2>Інформація</h2>
+        <p class="small">
+            Застосунок формує відповіді на основі
+            навчальних матеріалів.
+            Якщо інформації недостатньо,
+            система повідомить про це.
+        </p>
+
+        <p class="small">
+            У ПР15 використовується справжня
+            локальна AI-модель або тестовий провайдер
+            залежно від налаштувань сервера.
+        </p>
+    </section>
+
+</div>
 
 <script>
-const state = document.getElementById('state');
-const result = document.getElementById('result');
-const button = document.getElementById('send');
+    const questionInput =
+        document.getElementById("question");
 
-const sleep = ms =>
-  new Promise(resolve => setTimeout(resolve, ms));
+    const sendButton =
+        document.getElementById("sendButton");
 
-async function send() {
-  button.disabled = true;
-  result.textContent = '';
-  state.textContent = 'Надсилаємо запит...';
+    const clearButton =
+        document.getElementById("clearButton");
 
-  try {
-    const response = await fetch('/api/ask', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        question: document.getElementById('q').value,
-        documents: ['data/notes.md']
-      })
-    });
+    const cancelButton =
+        document.getElementById("cancelButton");
 
-    const accepted = await response.json();
+    const requestStatus =
+        document.getElementById("requestStatus");
 
-    if (!response.ok) {
-      throw new Error(
-        accepted.error?.message || 'Помилка запиту'
-      );
+    const resultCard =
+        document.getElementById("resultCard");
+
+    const answerElement =
+        document.getElementById("answer");
+
+    const sourcesElement =
+        document.getElementById("sources");
+
+    const requestIdElement =
+        document.getElementById("requestId");
+
+    let activeRequestId = null;
+    let activeStatusUrl = null;
+    let isProcessing = false;
+
+    function sleep(ms) {
+        return new Promise(resolve => {
+            setTimeout(resolve, ms);
+        });
     }
 
-    let finished = false;
+    function setStatus(message, type = "") {
+        requestStatus.textContent = message;
 
-    for (let i = 0; i < 60; i++) {
-      state.textContent =
-        `Обробка запиту ${accepted.request_id}...`;
+        requestStatus.className = "status";
 
-      const r = await fetch(accepted.status_url);
-      const info = await r.json();
+        if (type) {
+            requestStatus.classList.add(type);
+        }
+    }
 
-      if (!r.ok) {
-        throw new Error(
-          `${info.error?.kind || 'error'}: ` +
-          `${info.error?.message || 'Помилка'}`
+    function setProcessing(value) {
+        isProcessing = value;
+
+        sendButton.disabled = value;
+        clearButton.disabled = value;
+
+        cancelButton.classList.toggle(
+            "hidden",
+            !value
         );
-      }
+    }
 
-      if (info.status === 'completed') {
-        state.textContent = 'Готово (mock).';
+    function clearResult() {
+        resultCard.classList.add("hidden");
 
-        result.textContent = JSON.stringify(
-          info.result,
-          null,
-          2
+        answerElement.textContent = "";
+        sourcesElement.replaceChildren();
+        requestIdElement.textContent = "";
+    }
+
+    async function loadHealth() {
+        const healthStatus =
+            document.getElementById("healthStatus");
+
+        try {
+            const response = await fetch(
+                "/api/health",
+                { cache: "no-store" }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Сервер повернув помилку"
+                );
+            }
+
+            const data = await response.json();
+
+            document.getElementById(
+                "provider"
+            ).textContent = data.provider || "—";
+
+            document.getElementById(
+                "model"
+            ).textContent = data.model || "—";
+
+            document.getElementById(
+                "mode"
+            ).textContent = data.mode || "—";
+
+            healthStatus.textContent =
+                "Стан сервера: " +
+                (data.status || "невідомо") +
+                ". Сховище: " +
+                (data.storage || "невідомо");
+
+            healthStatus.className =
+                data.status === "ok"
+                    ? "status success"
+                    : "status warning";
+
+        } catch (error) {
+            healthStatus.textContent =
+                "Не вдалося підключитися до сервера.";
+
+            healthStatus.className = "status error";
+        }
+    }
+
+    function showResult(data, requestId) {
+        clearResult();
+
+        resultCard.classList.remove("hidden");
+
+        answerElement.textContent =
+            data.answer || "Відповідь відсутня.";
+
+        const sources = Array.isArray(data.sources)
+            ? data.sources
+            : [];
+
+        if (sources.length > 0) {
+            const title = document.createElement("strong");
+
+            title.textContent = "Джерела:";
+            sourcesElement.appendChild(title);
+
+            sources.forEach(source => {
+                const element = document.createElement("span");
+
+                element.className = "source-item";
+                element.textContent = source;
+
+                sourcesElement.appendChild(element);
+            });
+        } else {
+            sourcesElement.textContent =
+                "Джерела не вказані.";
+        }
+
+        requestIdElement.textContent =
+            "Request ID: " + requestId;
+
+        if (data.status === "no_evidence") {
+            setStatus(
+                "У документах недостатньо інформації.",
+                "warning"
+            );
+        } else {
+            setStatus(
+                "Відповідь успішно отримано.",
+                "success"
+            );
+        }
+    }
+
+    async function sendQuestion() {
+        if (isProcessing) {
+            return;
+        }
+
+        const question = questionInput.value.trim();
+
+        if (!question) {
+            setStatus(
+                "Введіть запитання.",
+                "error"
+            );
+            return;
+        }
+
+        activeRequestId = null;
+        activeStatusUrl = null;
+
+        clearResult();
+        setProcessing(true);
+
+        setStatus(
+            "Надсилаємо запитання..."
         );
 
-        finished = true;
-        break;
-      }
+        try {
+            const response = await fetch(
+                "/api/ask",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        documents: [
+                            "data/notes.md"
+                        ]
+                    })
+                }
+            );
 
-      if (info.status === 'cancelled') {
-        state.textContent = 'Запит скасовано.';
-        finished = true;
-        break;
-      }
+            const accepted = await response.json();
 
-      await sleep(500);
+            if (!response.ok) {
+                throw new Error(
+                    accepted.error?.message ||
+                    "Не вдалося створити запит"
+                );
+            }
+
+            activeRequestId = accepted.request_id;
+            activeStatusUrl = accepted.status_url;
+
+            let completed = false;
+
+            // До 120 секунд очікування
+            for (let attempt = 0; attempt < 240; attempt++) {
+
+                if (!isProcessing) {
+                    return;
+                }
+
+                setStatus(
+                    "AI обробляє запитання..."
+                );
+
+                const resultResponse = await fetch(
+                    activeStatusUrl,
+                    { cache: "no-store" }
+                );
+
+                const info = await resultResponse.json();
+
+                if (!resultResponse.ok) {
+                    const errorKind =
+                        info.error?.kind || "provider_error";
+
+                    const errorMessage =
+                        info.error?.message ||
+                        "Помилка обробки";
+
+                    throw new Error(
+                        errorKind + ": " + errorMessage
+                    );
+                }
+
+                if (info.status === "completed") {
+                    showResult(
+                        info.result,
+                        activeRequestId
+                    );
+
+                    completed = true;
+                    break;
+                }
+
+                if (info.status === "cancelled") {
+                    setStatus(
+                        "Запит скасовано.",
+                        "warning"
+                    );
+
+                    completed = true;
+                    break;
+                }
+
+                await sleep(500);
+            }
+
+            if (!completed) {
+                throw new Error(
+                    "Перевищено час очікування відповіді."
+                );
+            }
+
+        } catch (error) {
+            setStatus(
+                "Помилка: " + error.message,
+                "error"
+            );
+
+        } finally {
+            setProcessing(false);
+            activeRequestId = null;
+            activeStatusUrl = null;
+        }
     }
 
-    if (!finished) {
-      throw new Error(
-        'Забагато очікування. Перевір журнал сервера.'
-      );
+    async function cancelQuestion() {
+        if (!activeRequestId) {
+            return;
+        }
+
+        cancelButton.disabled = true;
+
+        try {
+            const response = await fetch(
+                "/api/requests/" +
+                encodeURIComponent(activeRequestId) +
+                "/cancel",
+                { method: "POST" }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error?.message ||
+                    "Не вдалося скасувати запит"
+                );
+            }
+
+            setStatus(
+                "Запит скасовано.",
+                "warning"
+            );
+
+            isProcessing = false;
+
+        } catch (error) {
+            setStatus(
+                "Помилка скасування: " + error.message,
+                "error"
+            );
+
+        } finally {
+            cancelButton.disabled = false;
+            cancelButton.classList.add("hidden");
+        }
     }
 
-  } catch (e) {
-    state.textContent = 'Контрольована помилка';
-    result.textContent = e.message;
+    sendButton.addEventListener(
+        "click",
+        sendQuestion
+    );
 
-  } finally {
-    button.disabled = false;
-  }
-}
+    clearButton.addEventListener(
+        "click",
+        () => {
+            questionInput.value = "";
+            clearResult();
+            setStatus("Поле очищено.");
+        }
+    );
 
-button.addEventListener('click', send);
+    cancelButton.addEventListener(
+        "click",
+        cancelQuestion
+    );
+
+    loadHealth();
 </script>
 
 </body>

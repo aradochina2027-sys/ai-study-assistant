@@ -1,3 +1,4 @@
+
 import json
 import time
 import uuid
@@ -8,6 +9,7 @@ from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 
+from app.budget import DailyBudget
 from app.gateway import Gateway
 from app.models import (
     AppError,
@@ -20,7 +22,8 @@ from app.models import (
 )
 from app.orchestration import Orchestrator
 from app.providers.mock import MockProvider
-from app.providers.unavailable import NotImplementedProvider
+from app.providers.openai_compat import OpenAICompatibleProvider
+from app.providers.recorded import RecordedProvider
 from app.service import StudyService
 from app.settings import Settings, load_settings
 from app.storage import SQLiteStorage
@@ -31,42 +34,110 @@ def create_app(
     settings: Settings | None = None,
 ) -> FastAPI:
 
+    # 1. Завантаження конфігурації
     settings = settings or load_settings()
     settings.validate()
 
+    # 2. Журналювання
     telemetry = Telemetry(settings.log_file)
+
+    # 3. Сховище SQLite
     storage = SQLiteStorage(
         settings.db_path,
         telemetry,
     )
 
+    # 4. Вибір AI-провайдера
     if settings.llm_provider == "mock":
         provider = MockProvider(
-            settings, telemetry
+            settings,
+            telemetry,
         )
+
+    elif settings.llm_provider in {
+        "ollama",
+        "openai_compat",
+    }:
+        provider = OpenAICompatibleProvider(
+            settings
+        )
+
+    elif settings.llm_provider == "recorded":
+
+        upstream = None
+
+        if settings.record_mode != "replay":
+            upstream = OpenAICompatibleProvider(
+                settings
+            )
+
+        provider = RecordedProvider(
+            settings,
+            upstream,
+        )
+
     else:
-        provider = NotImplementedProvider()
+        raise ValueError(
+            "Unknown AI provider: "
+            + settings.llm_provider
+        )
 
-    gateway = Gateway(provider, telemetry)
+    # 5. Денний ліміт AI-викликів
+    budget = None
 
+    if settings.llm_provider in {
+        "ollama",
+        "openai_compat",
+    } or (
+        settings.llm_provider == "recorded"
+        and settings.record_mode != "replay"
+    ):
+        budget = DailyBudget(
+            settings.db_path,
+            settings.daily_call_limit,
+        )
+
+    # 6. Шлюз провайдера
+    gateway = Gateway(
+        provider,
+        telemetry,
+        budget,
+    )
+
+    # 7. Оркестрація AI
     orchestrator = Orchestrator(
-        gateway, settings, telemetry
+        gateway,
+        settings,
+        telemetry,
     )
 
+    # 8. Прикладний сервіс
     service = StudyService(
-        storage, orchestrator, telemetry
+        storage,
+        orchestrator,
+        telemetry,
     )
 
+    # 9. Створення FastAPI
     api = FastAPI(
         title="AI Study Assistant",
+        description=(
+            "Навчальний AI-помічник. "
+            "Практична робота №15."
+        ),
         version=settings.app_version,
     )
 
+    # Компоненти для тестів та eval
     api.state.service = service
     api.state.storage = storage
+    api.state.orchestrator = orchestrator
+    api.state.gateway = gateway
+    api.state.telemetry = telemetry
 
     started_at = time.monotonic()
 
+    # Єдиний формат помилок
     def error_response(
         err: AppError,
         request_id: str,
@@ -81,53 +152,85 @@ def create_app(
             )
         )
 
+        telemetry.emit(
+            request_id,
+            "controller",
+            f"error_{err.kind}",
+        )
+
         return JSONResponse(
             status_code=err.status_code,
             content=payload.model_dump(),
         )
 
+    # Помилки перевірки введених даних
     @api.exception_handler(RequestValidationError)
     async def validation_handler(
         request: Request,
         exc: RequestValidationError,
     ):
+        request_id = str(uuid.uuid4())
+
         return error_response(
             AppError(
                 "validation_error",
                 "Перевірте формат і довжину полів",
                 422,
+                False,
             ),
-            request.headers.get(
-                "X-Request-ID",
-                str(uuid.uuid4()),
-            ),
+            request_id,
         )
+
+    # ------------------------------------------------
+    # Головна сторінка
+    # ------------------------------------------------
 
     @api.get("/")
     def index():
-        return FileResponse(
+        path = (
             Path(__file__).resolve().parent.parent
             / "static"
             / "index.html"
         )
 
+        return FileResponse(
+            path,
+            media_type="text/html",
+        )
+
+    # ------------------------------------------------
+    # GET /api/health
+    # ------------------------------------------------
+
     @api.get("/api/health")
     def health():
+
+        if settings.llm_provider == "mock":
+            mode = "mock"
+
+        elif settings.llm_provider == "recorded":
+            mode = settings.record_mode
+
+        else:
+            mode = "real"
+
+        storage_status = (
+            "ok"
+            if storage.ready()
+            else "unavailable"
+        )
+
         return {
-            "status": "ok",
+            "status": (
+                "ok"
+                if storage_status == "ok"
+                else "degraded"
+            ),
             "version": settings.app_version,
             "provider": settings.llm_provider,
             "model": settings.llm_model,
-            "mode": (
-                "mock"
-                if settings.llm_provider == "mock"
-                else "planned"
-            ),
-            "storage": (
-                "ok"
-                if storage.ready()
-                else "unavailable"
-            ),
+            "mode": mode,
+            "storage": storage_status,
             "extra": {
                 "index": "planned_pr16"
             },
@@ -137,15 +240,23 @@ def create_app(
             ),
         }
 
+    # ------------------------------------------------
+    # POST /api/ask
+    # ------------------------------------------------
+
     @api.post(
         "/api/ask",
         response_model=JobAccepted,
         status_code=202,
+        responses={
+            422: {"model": ErrorResponse},
+        },
     )
     def ask(
         body: AskInput,
         background_tasks: BackgroundTasks,
     ):
+
         request_id = str(uuid.uuid4())
 
         telemetry.emit(
@@ -154,8 +265,10 @@ def create_app(
             "accepted",
         )
 
+        # Створюємо запис у сховищі
         storage.create(request_id)
 
+        # Запускаємо фонову обробку
         background_tasks.add_task(
             service.run_job,
             body,
@@ -164,17 +277,24 @@ def create_app(
 
         return JobAccepted(
             request_id=request_id,
+            status="pending",
             status_url=(
                 f"/api/requests/{request_id}"
             ),
         )
+
+    # ------------------------------------------------
+    # GET /api/requests/{request_id}
+    # ------------------------------------------------
 
     @api.get(
         "/api/requests/{request_id}",
         response_model=JobView,
         responses={
             404: {"model": ErrorResponse},
+            429: {"model": ErrorResponse},
             503: {"model": ErrorResponse},
+            504: {"model": ErrorResponse},
         },
     )
     def get_request(request_id: str):
@@ -187,6 +307,7 @@ def create_app(
 
         record = storage.get(request_id)
 
+        # Запит не існує
         if record is None:
             return error_response(
                 AppError(
@@ -197,28 +318,45 @@ def create_app(
                 request_id,
             )
 
+        # Збережена помилка AI
         if record.status == "failed":
-            err = json.loads(
-                record.error_json or "{}"
-            )
+
+            try:
+                err_data = json.loads(
+                    record.error_json or "{}"
+                )
+            except ValueError:
+                err_data = {}
 
             return error_response(
                 AppError(
-                    err.get("kind", "failed"),
-                    err.get("message", "Помилка"),
-                    err.get("status_code", 503),
-                    err.get("retryable", False),
+                    kind=err_data.get(
+                        "kind",
+                        "provider_error",
+                    ),
+                    message=err_data.get(
+                        "message",
+                        "Помилка обробки запиту",
+                    ),
+                    status_code=err_data.get(
+                        "status_code",
+                        503,
+                    ),
+                    retryable=err_data.get(
+                        "retryable",
+                        False,
+                    ),
                 ),
                 request_id,
             )
 
-        result = (
-            ModelOutput.model_validate_json(
+        # Успішний структурований результат
+        result = None
+
+        if record.result_json:
+            result = ModelOutput.model_validate_json(
                 record.result_json
             )
-            if record.result_json
-            else None
-        )
 
         return JobView(
             request_id=request_id,
@@ -226,15 +364,23 @@ def create_app(
             result=result,
         )
 
+    # ------------------------------------------------
+    # POST /api/requests/{request_id}/cancel
+    # ------------------------------------------------
+
     @api.post(
-        "/api/requests/{request_id}/cancel"
+        "/api/requests/{request_id}/cancel",
+        responses={
+            404: {"model": ErrorResponse},
+            409: {"model": ErrorResponse},
+        },
     )
     def cancel_request(request_id: str):
 
         telemetry.emit(
             request_id,
             "controller",
-            "cancel",
+            "cancel_requested",
         )
 
         record = storage.get(request_id)
@@ -253,7 +399,7 @@ def create_app(
             return error_response(
                 AppError(
                     "conflict",
-                    "Запит уже завершився",
+                    "Запит уже завершено або скасовано",
                     409,
                 ),
                 request_id,
@@ -267,4 +413,5 @@ def create_app(
     return api
 
 
+# Головний об'єкт FastAPI
 app = create_app()

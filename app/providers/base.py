@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 
-from app.models import ProviderRequest
+from app.models import ProviderRequest, ProviderResult
 
 
 class BaseProvider(ABC):
@@ -10,4 +10,13 @@ class BaseProvider(ABC):
         self,
         request: ProviderRequest,
     ) -> Iterator[str]:
-        """Повертає фрагменти відповіді AI."""
+        """Потік фрагментів відповіді."""
+
+    def complete(
+        self,
+        request: ProviderRequest,
+    ) -> ProviderResult:
+        return ProviderResult(
+            text="".join(self.stream(request)),
+            model=request.model,
+        )

@@ -1,0 +1,246 @@
+{
+  "date_utc": "20261115T143732Z",
+  "provider": "recorded",
+  "model": "qwen3:4b",
+  "prompt_version": "study-v3",
+  "repetitions": 2,
+  "overall": {
+    "total": 18,
+    "passed": 1,
+    "failed": 17
+  },
+  "by_kind": {
+    "normal": {
+      "total": 12,
+      "passed": 1,
+      "failed": 11
+    },
+    "edge": {
+      "total": 2,
+      "passed": 0,
+      "failed": 2
+    },
+    "negative": {
+      "total": 2,
+      "passed": 0,
+      "failed": 2
+    },
+    "adversarial": {
+      "total": 2,
+      "passed": 0,
+      "failed": 2
+    }
+  },
+  "runs": [
+    {
+      "case_id": "n01",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": true,
+      "issues": [],
+      "result": {
+        "status": "ok",
+        "answer": "git init — створення нового Git-репозиторію.",
+        "sources": [
+          "data/notes.md"
+        ]
+      },
+      "metrics": {
+        "model": "qwen3:4b",
+        "prompt_version": "study-v3",
+        "elapsed_ms": 13165.78,
+        "input_tokens": 1286,
+        "output_tokens": 47,
+        "usd": 0.0,
+        "attempts": 1
+      }
+    },
+    {
+      "case_id": "n01",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n02",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n02",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n03",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n03",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n04",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n04",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n05",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n05",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n06",
+      "kind": "normal",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "n06",
+      "kind": "normal",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "e01",
+      "kind": "edge",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "e01",
+      "kind": "edge",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "x01",
+      "kind": "negative",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "x01",
+      "kind": "negative",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "a01",
+      "kind": "adversarial",
+      "repetition": 1,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    },
+    {
+      "case_id": "a01",
+      "kind": "adversarial",
+      "repetition": 2,
+      "passed": false,
+      "issues": [
+        "budget: Вичерпано денний ліміт викликів AI"
+      ],
+      "result": null,
+      "metrics": {}
+    }
+  ]
+}

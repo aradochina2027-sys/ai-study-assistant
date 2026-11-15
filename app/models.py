@@ -1,10 +1,17 @@
 from typing import Literal
-
-from pydantic import BaseModel, Field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    ConfigDict,
+    field_validator,
+)
 
 
 class AskInput(BaseModel):
-    question: str = Field(min_length=1, max_length=500)
+    question: str = Field(
+        min_length=1,
+        max_length=500,
+    )
 
     documents: list[str] = Field(
         default_factory=lambda: ["data/notes.md"],
@@ -24,6 +31,8 @@ class AskInput(BaseModel):
 
 
 class ModelOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     status: Literal["ok", "no_evidence"]
     answer: str
     sources: list[str]
@@ -66,12 +75,18 @@ class ProviderRequest(BaseModel):
     documents: list[str]
     timeout_s: float
 
+    temperature: float = 0.0
+    max_tokens: int = 450
+    output_schema: dict = Field(default_factory=dict)
+    prompt_version: str = "v1"
+
 
 class ProviderResult(BaseModel):
     text: str
     model: str
     input_tokens: int = 0
     output_tokens: int = 0
+    elapsed_ms: float = 0.0
 
 
 class StorageRecord(BaseModel):
