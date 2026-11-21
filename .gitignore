@@ -16,3 +16,5 @@ logs/
 htmlcov/
 # Local AI recordings
 tests/recordings/
+# Local RAG index
+.rag_index/
