@@ -1,691 +1,2765 @@
 
 <!DOCTYPE html>
 <html lang="uk">
-
 <head>
-    <meta charset="UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0c18">
+  <title>StudyAI — AI Study Assistant</title>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0c18;
+      --panel: rgba(22, 24, 45, .78);
+      --panel-solid: #191b32;
+      --panel-hover: rgba(38, 41, 71, .85);
+      --line: rgba(169, 161, 231, .17);
+      --text: #f5f3ff;
+      --muted: #a5a7c6;
+      --subtle: #74799c;
+      --violet: #a78bfa;
+      --violet-strong: #815cf2;
+      --cyan: #64e5e0;
+      --success: #6de6b0;
+      --danger: #ff8aa0;
+      --shadow: 0 20px 70px rgba(0, 0, 0, .26);
+    }
 
-    <title>AI Study Assistant | PR15</title>
+    body[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f4f3fc;
+      --panel: rgba(255, 255, 255, .84);
+      --panel-solid: #fff;
+      --panel-hover: rgba(239, 237, 255, .95);
+      --line: rgba(100, 87, 160, .17);
+      --text: #222039;
+      --muted: #686580;
+      --subtle: #85819d;
+      --violet: #7150d2;
+      --violet-strong: #6f45e4;
+      --cyan: #119d9d;
+      --success: #087b50;
+      --danger: #c43f67;
+      --shadow: 0 18px 55px rgba(67, 53, 117, .10);
+    }
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        body {
-            margin: 0;
-            padding: 32px 16px;
-            min-height: 100vh;
-            background: #f1f5fb;
-            font-family: Arial, sans-serif;
-            color: #1e293b;
-        }
+    html {
+      scroll-behavior: smooth;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui,
+            -apple-system, "Segoe UI", Arial, sans-serif;
+      min-height: 100vh;
+      transition: background .25s, color .25s;
+    }
 
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      pointer-events: none;
+      border-radius: 50%;
+      filter: blur(85px);
+      opacity: .38;
+    }
 
-        .header h1 {
-            color: #2563eb;
-            font-size: 32px;
-            margin-bottom: 8px;
-        }
+    body::before {
+      width: 450px;
+      height: 450px;
+      background: #6033d4;
+      top: -160px;
+      left: 28%;
+    }
 
-        .header p {
-            color: #64748b;
-        }
+    body::after {
+      width: 420px;
+      height: 420px;
+      background: #166b91;
+      bottom: -200px;
+      right: 3%;
+      opacity: .18;
+    }
 
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 28px;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.07);
-            margin-bottom: 20px;
-        }
+    button,
+    textarea {
+      font: inherit;
+    }
 
-        h2 {
-            margin-top: 0;
-            font-size: 21px;
-        }
+    button {
+      cursor: pointer;
+    }
 
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
+    button:disabled {
+      opacity: .48;
+      cursor: not-allowed;
+    }
 
-        textarea {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            font-family: inherit;
-            font-size: 16px;
-            min-height: 125px;
-            resize: vertical;
-            outline: none;
-        }
+    button:focus-visible,
+    textarea:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--cyan);
+      outline-offset: 3px;
+    }
 
-        textarea:focus {
-            border-color: #2563eb;
-        }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-        .buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
+    [hidden] {
+      display: none !important;
+    }
 
-        button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 9px;
-            font-size: 15px;
-            cursor: pointer;
-            font-weight: 600;
-        }
+    .app {
+      display: grid;
+      grid-template-columns: 246px minmax(0, 1fr) 275px;
+      min-height: 100vh;
+    }
 
-        .primary {
-            background: #2563eb;
-            color: white;
-        }
+    .sidebar,
+    .inspector {
+      border-color: var(--line);
+      background: rgba(13, 14, 29, .55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
 
-        .secondary {
-            background: #e2e8f0;
-            color: #334155;
-        }
+    body[data-theme="light"] .sidebar,
+    body[data-theme="light"] .inspector {
+      background: rgba(255, 255, 255, .45);
+    }
 
-        .danger {
-            background: #fee2e2;
-            color: #b91c1c;
-        }
+    .sidebar {
+      border-right: 1px solid var(--line);
+      padding: 28px 17px;
+      display: flex;
+      flex-direction: column;
+      gap: 27px;
+    }
 
-        button:hover:not(:disabled) {
-            filter: brightness(0.95);
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 0 8px;
+    }
 
-        button:disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-        }
+    .brand-icon {
+      width: 41px;
+      height: 41px;
+      flex: 0 0 auto;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 900;
+      font-size: 21px;
+      background: linear-gradient(
+        145deg,
+        #ab8afc,
+        #7545db 63%,
+        #39bdbd
+      );
+      box-shadow: 0 10px 25px rgba(120, 76, 238, .27);
+    }
 
-        .status {
-            padding: 12px;
-            border-radius: 9px;
-            background: #eff6ff;
-            color: #1d4ed8;
-            margin-top: 15px;
-        }
+    .brand strong {
+      display: block;
+      font-size: 19px;
+      letter-spacing: -.6px;
+      line-height: 1.12;
+    }
 
-        .success {
-            background: #dcfce7;
-            color: #166534;
-        }
+    .brand small {
+      display: block;
+      color: var(--subtle);
+      font-size: 11px;
+      letter-spacing: 1.7px;
+      margin-top: 4px;
+    }
 
-        .error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+    .action {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      color: var(--text);
+      background: var(--panel);
+      padding: 12px 14px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: .2s;
+    }
 
-        .warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
+    .action:hover:not(:disabled),
+    .nav-link:hover,
+    .history-item:hover {
+      background: var(--panel-hover);
+      border-color: rgba(167, 139, 250, .45);
+    }
 
-        .answer {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 20px;
-            border-radius: 10px;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            line-height: 1.7;
-            font-size: 16px;
-        }
+    .action.primary-outline {
+      border-color: rgba(167, 139, 250, .43);
+    }
 
-        .sources {
-            margin-top: 16px;
-            color: #475569;
-            font-size: 14px;
-        }
+    .nav-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--subtle);
+      text-transform: uppercase;
+      margin: 0 10px 10px;
+    }
 
-        .source-item {
-            display: inline-block;
-            padding: 7px 11px;
-            background: #e0ecff;
-            color: #1e40af;
-            border-radius: 7px;
-            margin: 5px 5px 0 0;
-        }
+    .nav-list {
+      display: grid;
+      gap: 5px;
+    }
 
-        .health {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 13px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
 
-        .health-item {
-            background: #f1f5f9;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 14px;
-        }
+    .nav-link.active {
+      color: var(--violet);
+      background: rgba(146, 112, 240, .11);
+      border-color: rgba(146, 112, 240, .16);
+    }
 
-        .small {
-            font-size: 13px;
-            color: #64748b;
-        }
+    .history {
+      display: grid;
+      gap: 6px;
+      max-height: 36vh;
+      overflow: auto;
+    }
 
-        .hidden {
-            display: none;
-        }
+    .history-item {
+      padding: 9px 11px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      width: 100%;
+    }
 
-        @media (max-width: 600px) {
-            .card {
-                padding: 18px;
-            }
+    .history-item span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+    }
 
-            .header h1 {
-                font-size: 26px;
-            }
+    .history-item small {
+      display: block;
+      color: var(--subtle);
+      font-size: 11px;
+      margin-top: 3px;
+    }
 
-            button {
-                width: 100%;
-            }
-        }
-    </style>
+    .history-empty {
+      color: var(--subtle);
+      font-size: 12px;
+      padding: 0 11px;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      border: 1px solid var(--line);
+      padding: 13px;
+      border-radius: 15px;
+      background: var(--panel);
+    }
+
+    .sidebar-bottom strong {
+      display: block;
+      font-size: 12px;
+    }
+
+    .sidebar-bottom p {
+      color: var(--muted);
+      font-size: 11px;
+      margin: 4px 0 0;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 25px clamp(22px, 5vw, 78px) 55px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .crumbs {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .2px;
+    }
+
+    .crumbs b {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .icon-btn {
+      height: 36px;
+      padding: 0 13px;
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .workspace {
+      max-width: 890px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      color: var(--cyan);
+      letter-spacing: 2.1px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 25px;
+      padding: 42px 40px 35px;
+      background: linear-gradient(
+        118deg,
+        rgba(35, 31, 72, .92),
+        rgba(22, 23, 45, .85) 55%,
+        rgba(24, 46, 66, .7)
+      );
+      border: 1px solid rgba(170, 142, 255, .22);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    body[data-theme="light"] .hero {
+      background: linear-gradient(
+        120deg,
+        #f1eafd,
+        #f8f7ff 60%,
+        #eaf9fa
+      );
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      right: -80px;
+      top: -130px;
+      background: radial-gradient(
+        circle,
+        rgba(162, 112, 255, .3),
+        transparent 67%
+      );
+    }
+
+    .hero h1 {
+      position: relative;
+      font-size: clamp(29px, 3.6vw, 48px);
+      line-height: 1.13;
+      letter-spacing: -2px;
+      margin: 14px 0;
+      max-width: 560px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(
+        105deg,
+        #cbb4ff,
+        #9d8bff 52%,
+        #75e5e8
+      );
+      color: transparent;
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+
+    body[data-theme="light"] .gradient-text {
+      background-image: linear-gradient(
+        105deg,
+        #7651d6,
+        #3c90b5
+      );
+    }
+
+    .hero p {
+      color: var(--muted);
+      margin: 0;
+      max-width: 475px;
+      font-size: 14px;
+    }
+
+    .orbit {
+      position: absolute;
+      width: 166px;
+      height: 166px;
+      right: 28px;
+      top: 30px;
+      opacity: .79;
+    }
+
+    .orbit-ring {
+      width: 100%;
+      height: 100%;
+      border: 1px solid rgba(174, 151, 255, .33);
+      border-radius: 50%;
+      animation: spin 25s linear infinite;
+      position: relative;
+    }
+
+    .orbit-ring::before {
+      content: "";
+      position: absolute;
+      top: 12px;
+      left: 11px;
+      width: 12px;
+      height: 12px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 22px var(--cyan);
+    }
+
+    .orbit-core {
+      position: absolute;
+      inset: 32px;
+      border-radius: 25px;
+      background: linear-gradient(
+        145deg,
+        #b58eff,
+        #6e54de,
+        #369eae
+      );
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 75px rgba(143, 106, 243, .3);
+      transform: rotate(-12deg);
+    }
+
+    .orbit-core::after {
+      content: "✦";
+      font-size: 47px;
+      color: white;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin: 26px 1px 12px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: -.2px;
+    }
+
+    .subtext {
+      font-size: 12px;
+      color: var(--subtle);
+    }
+
+    .prompt-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 21px;
+    }
+
+    .prompt-chip {
+      background: var(--panel);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      padding: 8px 12px;
+      font-size: 12px;
+      transition: .2s;
+    }
+
+    .prompt-chip:hover:not(:disabled) {
+      color: var(--text);
+      border-color: var(--violet);
+      transform: translateY(-1px);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 19px;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, .08);
+    }
+
+    .composer {
+      padding: 19px;
+    }
+
+    .composer label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 0 0 9px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 122px;
+      resize: vertical;
+      color: var(--text);
+      background: rgba(6, 8, 23, .22);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 14px 15px;
+      line-height: 1.6;
+      outline: none;
+      transition: .2s;
+    }
+
+    body[data-theme="light"] textarea {
+      background: rgba(251, 250, 255, .9);
+    }
+
+    textarea::placeholder {
+      color: var(--subtle);
+    }
+
+    textarea:focus {
+      border-color: rgba(167, 139, 250, .7);
+      box-shadow: 0 0 0 3px rgba(167, 139, 250, .1);
+    }
+
+    textarea[aria-invalid="true"] {
+      border-color: var(--danger);
+    }
+
+    .field-error {
+      color: var(--danger);
+      font-size: 12px;
+      margin: 7px 0 0;
+    }
+
+    .composer-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 13px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .composer-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      color: var(--subtle);
+      font-size: 11px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      padding: 5px 9px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .composer-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 11px;
+      padding: 10px 15px;
+      border: 1px solid var(--line);
+      background: var(--panel-hover);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .btn:hover:not(:disabled) {
+      filter: brightness(1.10);
+    }
+
+    .btn-primary {
+      color: white;
+      background: linear-gradient(110deg, #8661ee, #a076fc);
+      border-color: rgba(202, 173, 255, .3);
+      box-shadow: 0 7px 22px rgba(109, 73, 203, .2);
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      background: rgba(255, 92, 128, .08);
+      border-color: rgba(255, 112, 144, .25);
+    }
+
+    .btn-soft {
+      background: transparent;
+    }
+
+    .status-card {
+      margin-top: 18px;
+      padding: 19px 21px;
+    }
+
+    .status-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .status-top strong {
+      font-size: 13px;
+    }
+
+    .status-line {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 9px 0 0;
+    }
+
+    .status-meta {
+      color: var(--subtle);
+      font-size: 11px;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
+    .status-meta code {
+      color: var(--violet);
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--cyan);
+      font-size: 11px;
+    }
+
+    .status-indicator::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-indicator.complete {
+      color: var(--success);
+    }
+
+    .status-indicator.cancelled {
+      color: var(--subtle);
+    }
+
+    .status-indicator.failed {
+      color: var(--danger);
+    }
+
+    .error-card {
+      margin-top: 18px;
+      padding: 17px 20px;
+      border-color: rgba(255, 112, 144, .4);
+    }
+
+    .error-card strong {
+      color: var(--danger);
+    }
+
+    .error-card p {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 7px 0 14px;
+      white-space: pre-wrap;
+    }
+
+    .result {
+      margin-top: 19px;
+      overflow: hidden;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 17px 21px;
+      border-bottom: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+
+    .result-header h2 {
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .result-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .result-body {
+      padding: 20px 23px;
+    }
+
+    .answer {
+      font-size: 14px;
+      line-height: 1.85;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .answer-status {
+      display: inline-block;
+      margin-bottom: 13px;
+      padding: 6px 11px;
+      border-radius: 99px;
+      color: var(--success);
+      background: rgba(80, 219, 156, .1);
+      font-size: 11px;
+    }
+
+    .answer-status.uncertain {
+      color: #f0bc6a;
+      background: rgba(238, 182, 95, .1);
+    }
+
+    .source-title {
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin: 21px 0 10px;
+    }
+
+    .source-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .source {
+      padding: 8px 11px;
+      color: var(--muted);
+      background: rgba(131, 115, 191, .09);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .note {
+      color: var(--subtle);
+      font-size: 11px;
+      margin-top: 11px;
+    }
+
+    .inspector {
+      border-left: 1px solid var(--line);
+      padding: 31px 20px;
+    }
+
+    .inspector h2 {
+      font-size: 13px;
+      margin: 0 0 14px;
+    }
+
+    .inspector .card {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 11px 0;
+      font-size: 12px;
+    }
+
+    .info-row span {
+      color: var(--subtle);
+    }
+
+    .info-row strong {
+      font-size: 12px;
+      font-weight: 650;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .system-state {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--success);
+      font-size: 12px;
+      margin: 0 0 14px;
+    }
+
+    .system-state.offline {
+      color: var(--danger);
+    }
+
+    .system-state::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: currentColor;
+      border-radius: 50%;
+    }
+
+    .help-text {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .help-text + .help-text {
+      margin-top: 10px;
+    }
+
+    .footnote {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--subtle);
+      font-size: 11px;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 15;
+      bottom: 22px;
+      right: 22px;
+      background: var(--panel-solid);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 17px;
+      box-shadow: var(--shadow);
+      max-width: min(370px, calc(100vw - 44px));
+    }
+
+    @media (max-width: 1250px) {
+      .app {
+        grid-template-columns: 230px minmax(0, 1fr);
+      }
+
+      .inspector {
+        grid-column: 2;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        padding: 18px 28px;
+      }
+
+      .inspector h2 {
+        grid-column: 1 / -1;
+        margin: 0;
+      }
+
+      .inspector .card {
+        margin: 0;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        display: block;
+      }
+
+      .sidebar {
+        padding: 15px 18px;
+        gap: 12px;
+      }
+
+      .brand small,
+      .sidebar nav,
+      .sidebar .history-wrap,
+      .sidebar-bottom {
+        display: none;
+      }
+
+      .sidebar .action {
+        justify-content: center;
+      }
+
+      .main {
+        padding: 22px 16px 40px;
+      }
+
+      .topbar {
+        margin-bottom: 18px;
+      }
+
+      .hero {
+        padding: 29px 23px;
+      }
+
+      .hero h1 {
+        letter-spacing: -1.2px;
+      }
+
+      .hero p {
+        max-width: 92%;
+      }
+
+      .orbit {
+        opacity: .16;
+        right: -30px;
+      }
+
+      .inspector {
+        display: block;
+        padding: 18px 16px;
+      }
+
+      .inspector .card {
+        margin-bottom: 12px;
+      }
+
+      .composer {
+        padding: 14px;
+      }
+
+      .composer-footer {
+        align-items: stretch;
+      }
+
+      .composer-actions {
+        width: 100%;
+      }
+
+      .composer-actions .btn {
+        flex: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
 </head>
 
-<body>
+<body data-theme="dark">
+  <div class="app">
 
-<div class="container">
+    <aside class="sidebar" aria-label="Навігація">
+      <a class="brand" href="#assistant" aria-label="StudyAI — головна">
+        <span class="brand-icon" aria-hidden="true">✦</span>
+        <span>
+          <strong>StudyAI</strong>
+          <small>WORKSPACE</small>
+        </span>
+      </a>
 
-    <header class="header">
-        <h1>AI Study Assistant</h1>
-        <p>
-            Інтелектуальний навчальний помічник
-            на основі Qwen3 та Ollama
-        </p>
-        <p class="small">
-            Практична робота №15
-        </p>
-    </header>
+      <button
+        class="action primary-outline"
+        id="newChatBtn"
+        type="button"
+      >
+        <span aria-hidden="true">＋</span>
+        Нова розмова
+      </button>
 
-    <section class="card">
-        <h2>Стан системи</h2>
+      <nav aria-label="Розділи">
+        <p class="nav-title">Робочий простір</p>
+        <div class="nav-list">
+          <a class="nav-link active" href="#assistant">
+            ✧ &nbsp; AI-асистент
+          </a>
+          <a class="nav-link" href="#resultSection">
+            ▤ &nbsp; Відповіді та джерела
+          </a>
+          <a class="nav-link" href="#systemInfo">
+            ◉ &nbsp; Стан системи
+          </a>
+        </div>
+      </nav>
 
-        <div class="health">
-            <div class="health-item">
-                Провайдер:
-                <strong id="provider">Перевірка...</strong>
-            </div>
+      <section class="history-wrap" aria-label="Історія цього браузера">
+        <p class="nav-title">Нещодавні запити</p>
+        <div class="history" id="historyList">
+          <p class="history-empty">Поки що немає запитів</p>
+        </div>
+      </section>
 
-            <div class="health-item">
-                Модель:
-                <strong id="model">Перевірка...</strong>
-            </div>
+      <div class="sidebar-bottom">
+        <strong>✦ AI Study Assistant</strong>
+        <p>Локальна AI-модель і навчальний контекст RAG.</p>
+      </div>
+    </aside>
 
-            <div class="health-item">
-                Режим:
-                <strong id="mode">Перевірка...</strong>
-            </div>
+    <main class="main" id="assistant">
+      <div class="topbar">
+        <span class="crumbs">
+          Workspace <span aria-hidden="true"> / </span>
+          <b>AI Assistant</b>
+        </span>
+
+        <div class="top-actions">
+          <button
+            class="icon-btn"
+            id="themeToggle"
+            type="button"
+            aria-label="Перемкнути тему"
+          >
+            ☀ Тема
+          </button>
+        </div>
+      </div>
+
+      <div class="workspace">
+
+        <section class="hero" aria-labelledby="heroTitle">
+          <div class="eyebrow">
+            STUDYAI WORKSPACE · INTELLIGENT LEARNING
+          </div>
+
+          <h1 id="heroTitle">
+            Навчайся швидше.<br>
+            <span class="gradient-text">Думай глибше.</span>
+          </h1>
+
+          <p>
+            Постав запитання, отримай відповідь AI та перевір,
+            з яких навчальних матеріалів вона сформована.
+          </p>
+
+          <div class="orbit" aria-hidden="true">
+            <div class="orbit-ring"></div>
+            <div class="orbit-core"></div>
+          </div>
+        </section>
+
+        <div class="section-head">
+          <h2>Із чого почнемо?</h2>
+          <span class="subtext">Приклади запитань</span>
         </div>
 
-        <div id="healthStatus" class="status">
-            Перевіряємо сервер...
-        </div>
-    </section>
+        <div class="prompt-list" id="promptList">
+          <button
+            type="button"
+            class="prompt-chip"
+            data-prompt="Що робить git push?"
+          >
+            ⌘ Git та GitHub
+          </button>
 
-    <section class="card">
-        <h2>Поставити запитання</h2>
+          <button
+            type="button"
+            class="prompt-chip"
+            data-prompt="Що таке функція в Python?"
+          >
+            ◈ Python
+          </button>
 
-        <label for="question">
-            Запитання за навчальними матеріалами
-        </label>
+          <button
+            type="button"
+            class="prompt-chip"
+            data-prompt="Що таке SQL SELECT?"
+          >
+            ▥ SQL
+          </button>
 
-        <textarea
-            id="question"
-            maxlength="500"
-            placeholder="Введіть запитання..."
-        >Як створити Git-репозиторій?</textarea>
-
-        <div class="buttons">
-            <button
-                class="primary"
-                id="sendButton"
-                type="button"
-            >
-                Надіслати запитання
-            </button>
-
-            <button
-                class="secondary"
-                id="clearButton"
-                type="button"
-            >
-                Очистити
-            </button>
-
-            <button
-                class="danger hidden"
-                id="cancelButton"
-                type="button"
-            >
-                Скасувати запит
-            </button>
+          <button
+            type="button"
+            class="prompt-chip"
+            data-prompt="Поясни поняття, яке є в навчальних документах, простими словами."
+          >
+            ✧ Поясни простіше
+          </button>
         </div>
 
-        <div
-            id="requestStatus"
-            class="status"
-            role="status"
+        <section class="card composer" aria-label="Нове запитання">
+          <form id="askForm" novalidate>
+            <label for="question">Твоє запитання</label>
+
+            <textarea
+              id="question"
+              name="question"
+              rows="4"
+              required
+              minlength="1"
+              maxlength="500"
+              aria-describedby="fieldError questionHelp"
+              placeholder="Наприклад: чим відрізняються git commit і git push?"
+            ></textarea>
+
+            <p
+              class="field-error"
+              id="fieldError"
+              role="alert"
+              hidden
+            ></p>
+
+            <div class="composer-footer">
+              <div class="composer-meta">
+                <span class="pill">
+                  <span class="dot" aria-hidden="true"></span>
+                  data/notes.md
+                </span>
+                <span id="questionHelp">
+                  Ctrl + Enter — надіслати
+                </span>
+                <span id="charCounter">0 / 500</span>
+              </div>
+
+              <div class="composer-actions">
+                <button
+                  class="btn btn-soft"
+                  id="clearBtn"
+                  type="button"
+                >
+                  Очистити
+                </button>
+
+                <button
+                  class="btn btn-primary"
+                  id="sendBtn"
+                  type="submit"
+                >
+                  ✦ Згенерувати відповідь
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section
+          class="card status-card"
+          id="activityCard"
+          aria-live="polite"
+          hidden
         >
-            Готовий до запитання.
+          <div class="status-top">
+            <strong id="activityTitle">Обробка запиту</strong>
+
+            <div class="status-indicator" id="statusIndicator">
+              Очікування
+            </div>
+
+            <button
+              class="btn btn-danger"
+              id="cancelBtn"
+              type="button"
+              hidden
+            >
+              Скасувати
+            </button>
+          </div>
+
+          <p class="status-line" id="activityText">
+            Очікуємо підтвердження сервера.
+          </p>
+
+          <div class="status-meta">
+            Request ID:
+            <code id="requestIdText">—</code>
+          </div>
+        </section>
+
+        <section
+          class="card error-card"
+          id="errorPanel"
+          role="alert"
+          hidden
+        >
+          <strong>Не вдалося завершити дію</strong>
+          <p id="errorText"></p>
+
+          <div class="result-actions">
+            <button
+              type="button"
+              class="btn"
+              id="retryBtn"
+            >
+              Спробувати знову
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-soft"
+              id="resumeBtn"
+              hidden
+            >
+              Перевірити стан
+            </button>
+          </div>
+        </section>
+
+        <section
+          class="card result"
+          id="resultSection"
+          aria-labelledby="resultTitle"
+          hidden
+        >
+          <div class="result-header">
+            <h2 id="resultTitle">✧ Відповідь StudyAI</h2>
+
+            <div class="result-actions">
+              <button
+                type="button"
+                class="btn btn-soft"
+                id="copyBtn"
+              >
+                Копіювати
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-soft"
+                id="downloadBtn"
+              >
+                Зберегти TXT
+              </button>
+            </div>
+          </div>
+
+          <div class="result-body">
+            <span class="answer-status" id="answerStatus">
+              Відповідь готова
+            </span>
+
+            <div class="answer" id="answerText"></div>
+
+            <h3 class="source-title">Джерела</h3>
+            <div class="source-list" id="sources"></div>
+
+            <p class="note">
+              Відповіді моделі можуть бути неточними.
+              Перевіряй важливу інформацію за джерелами.
+            </p>
+          </div>
+        </section>
+
+        <p class="footnote">
+          StudyAI · ПР17 · FastAPI + Ollama + RAG
+        </p>
+
+      </div>
+    </main>
+
+    <aside
+      class="inspector"
+      id="systemInfo"
+      aria-label="Інформація про систему"
+    >
+      <h2>Система</h2>
+
+      <div class="card">
+        <p class="system-state" id="serviceStatus">
+          Перевіряємо сервер…
+        </p>
+
+        <div class="info-row">
+          <span>Провайдер</span>
+          <strong id="providerValue">—</strong>
         </div>
-    </section>
 
-    <section class="card hidden" id="resultCard">
-        <h2>Відповідь AI</h2>
+        <div class="info-row">
+          <span>Модель</span>
+          <strong id="modelValue">—</strong>
+        </div>
 
-        <div
-            id="answer"
-            class="answer"
-            aria-live="polite"
-        ></div>
+        <div class="info-row">
+          <span>Режим</span>
+          <strong id="modeValue">—</strong>
+        </div>
 
-        <div id="sources" class="sources"></div>
+        <div class="info-row">
+          <span>RAG</span>
+          <strong id="ragValue">—</strong>
+        </div>
 
-        <p class="small" id="requestId"></p>
-    </section>
+        <button
+          type="button"
+          class="btn btn-soft"
+          id="refreshHealthBtn"
+        >
+          ↻ Оновити статус
+        </button>
+      </div>
 
-    <section class="card">
-        <h2>Інформація</h2>
-        <p class="small">
-            Застосунок формує відповіді на основі
-            навчальних матеріалів.
-            Якщо інформації недостатньо,
-            система повідомить про це.
+      <div class="card">
+        <h2>Як це працює?</h2>
+
+        <p class="help-text">
+          1. Напиши запитання про навчальний матеріал.
         </p>
 
-        <p class="small">
-            У ПР15 використовується справжня
-            локальна AI-модель або тестовий провайдер
-            залежно від налаштувань сервера.
+        <p class="help-text">
+          2. AI опрацює його з доступним контекстом.
         </p>
-    </section>
 
-</div>
+        <p class="help-text">
+          3. Прочитай відповідь і переглянь джерела.
+        </p>
+      </div>
 
-<script>
-    const questionInput =
-        document.getElementById("question");
+      <div class="card">
+        <h2>Захист від повторів</h2>
 
-    const sendButton =
-        document.getElementById("sendButton");
+        <p class="help-text">
+          При повторному надсиланні після збою мережі
+          StudyAI використовує той самий Idempotency-Key,
+          щоб уникнути дублювання завдання.
+        </p>
+      </div>
+    </aside>
+  </div>
 
-    const clearButton =
-        document.getElementById("clearButton");
+  <div
+    class="toast"
+    id="toast"
+    role="status"
+    aria-live="polite"
+    hidden
+  ></div>
 
-    const cancelButton =
-        document.getElementById("cancelButton");
+  <script>
+    "use strict";
 
-    const requestStatus =
-        document.getElementById("requestStatus");
+    const $ = (id) => document.getElementById(id);
 
-    const resultCard =
-        document.getElementById("resultCard");
+    const STORAGE = {
+      draft: "studyai.pr17.draft",
+      request: "studyai.pr17.request",
+      submission: "studyai.pr17.submission",
+      history: "studyai.pr17.history",
+      theme: "studyai.pr17.theme"
+    };
 
-    const answerElement =
-        document.getElementById("answer");
+    const documents = ["data/notes.md"];
 
-    const sourcesElement =
-        document.getElementById("sources");
+    const state = {
+      min: 1,
+      max: 500,
+      status: "idle",
+      activeId: null,
+      submitting: false,
+      cancelling: false,
+      result: null,
+      submission: null,
+      lastQuestion: "",
+      retryMode: "submit",
+      generation: 0,
+      pollTimer: null
+    };
 
-    const requestIdElement =
-        document.getElementById("requestId");
+    // ==========================================
+    // 1. Безпечне локальне зберігання
+    // ==========================================
 
-    let activeRequestId = null;
-    let activeStatusUrl = null;
-    let isProcessing = false;
+    function getStored(store, key) {
+      try {
+        return store.getItem(key);
+      } catch {
+        return null;
+      }
+    }
 
-    function sleep(ms) {
-        return new Promise(resolve => {
-            setTimeout(resolve, ms);
+    function saveStored(store, key, value) {
+      try {
+        store.setItem(key, value);
+      } catch {
+        // Зберігання може бути заборонене.
+      }
+    }
+
+    function removeStored(store, key) {
+      try {
+        store.removeItem(key);
+      } catch {
+        // Нічого.
+      }
+    }
+
+    function readJson(store, key, fallback) {
+      try {
+        return JSON.parse(getStored(store, key)) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    // ==========================================
+    // 2. ПР17 — Idempotency-Key
+    // ==========================================
+
+    function newKey() {
+      if (
+        window.crypto &&
+        typeof window.crypto.randomUUID === "function"
+      ) {
+        return window.crypto.randomUUID();
+      }
+
+      return (
+        `studyai-${Date.now()}-` +
+        Math.random().toString(36).slice(2, 12)
+      );
+    }
+
+    function isWorking() {
+      return (
+        state.submitting ||
+        state.status === "pending" ||
+        state.status === "running"
+      );
+    }
+
+    // ==========================================
+    // 3. Повідомлення та перевірка введення
+    // ==========================================
+
+    function showToast(message) {
+      $("toast").textContent = message;
+      $("toast").hidden = false;
+
+      clearTimeout(showToast.timer);
+
+      showToast.timer = setTimeout(() => {
+        $("toast").hidden = true;
+      }, 2600);
+    }
+
+    function clearFieldError() {
+      $("fieldError").hidden = true;
+      $("fieldError").textContent = "";
+      $("question").setAttribute("aria-invalid", "false");
+    }
+
+    function showFieldError(message) {
+      $("fieldError").textContent = message;
+      $("fieldError").hidden = false;
+      $("question").setAttribute("aria-invalid", "true");
+    }
+
+    function showError(message, error = null) {
+      const retryAfter = error?.retryAfter
+        ? ` Повтори спробу через ${error.retryAfter} с.`
+        : "";
+
+      $("errorText").textContent = message + retryAfter;
+      $("errorPanel").hidden = false;
+
+      $("resumeBtn").hidden = state.retryMode !== "poll";
+
+      const field = error?.fields?.find?.(
+        (item) => item.field === "question"
+      );
+
+      if (field) {
+        showFieldError(field.message);
+      }
+    }
+
+    function hideError() {
+      $("errorPanel").hidden = true;
+      clearFieldError();
+    }
+
+    // ==========================================
+    // 4. Стан елементів інтерфейсу
+    // ==========================================
+
+    function refreshControls() {
+      const question = $("question").value.trim();
+      const busy = isWorking();
+
+      $("sendBtn").disabled =
+        busy ||
+        question.length < state.min ||
+        question.length > state.max;
+
+      $("sendBtn").textContent = state.submitting
+        ? "Надсилаємо…"
+        : "✦ Згенерувати відповідь";
+
+      $("question").readOnly = busy;
+
+      $("cancelBtn").hidden = !(
+        state.status === "pending" ||
+        state.status === "running"
+      );
+
+      $("cancelBtn").disabled = state.cancelling;
+      $("clearBtn").disabled = busy;
+
+      document.querySelectorAll("[data-prompt]").forEach(
+        (button) => {
+          button.disabled = busy;
+        }
+      );
+
+      $("charCounter").textContent =
+        `${$("question").value.length} / ${state.max}`;
+    }
+
+    function showActivity(title, detail, status) {
+      $("activityCard").hidden = false;
+
+      $("activityTitle").textContent = title;
+      $("activityText").textContent = detail;
+      $("statusIndicator").textContent = status;
+
+      $("statusIndicator").className = "status-indicator";
+
+      if (state.status === "completed") {
+        $("statusIndicator").classList.add("complete");
+      }
+
+      if (state.status === "cancelled") {
+        $("statusIndicator").classList.add("cancelled");
+      }
+
+      if (state.status === "failed") {
+        $("statusIndicator").classList.add("failed");
+      }
+
+      $("requestIdText").textContent =
+        state.activeId || "очікується";
+
+      refreshControls();
+    }
+
+    function stopPolling() {
+      if (state.pollTimer !== null) {
+        clearTimeout(state.pollTimer);
+      }
+
+      state.pollTimer = null;
+    }
+
+    // ==========================================
+    // 5. API-запити
+    // ==========================================
+
+    async function requestJson(url, options = {}) {
+      let response;
+
+      try {
+        response = await fetch(url, {
+          cache: "no-store",
+          ...options
         });
-    }
-
-    function setStatus(message, type = "") {
-        requestStatus.textContent = message;
-
-        requestStatus.className = "status";
-
-        if (type) {
-            requestStatus.classList.add(type);
-        }
-    }
-
-    function setProcessing(value) {
-        isProcessing = value;
-
-        sendButton.disabled = value;
-        clearButton.disabled = value;
-
-        cancelButton.classList.toggle(
-            "hidden",
-            !value
+      } catch {
+        const error = new Error(
+          "Немає з'єднання із сервером. " +
+          "Перевір запуск FastAPI і спробуй ще раз."
         );
-    }
 
-    function clearResult() {
-        resultCard.classList.add("hidden");
+        error.network = true;
+        error.retryable = true;
 
-        answerElement.textContent = "";
-        sourcesElement.replaceChildren();
-        requestIdElement.textContent = "";
-    }
+        throw error;
+      }
 
-    async function loadHealth() {
-        const healthStatus =
-            document.getElementById("healthStatus");
+      const raw = await response.text();
 
-        try {
-            const response = await fetch(
-                "/api/health",
-                { cache: "no-store" }
-            );
+      let data = {};
 
-            if (!response.ok) {
-                throw new Error(
-                    "Сервер повернув помилку"
-                );
-            }
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = {};
+      }
 
-            const data = await response.json();
+      if (!response.ok) {
+        const apiError = data?.error || {};
 
-            document.getElementById(
-                "provider"
-            ).textContent = data.provider || "—";
+        const error = new Error(
+          apiError.message ||
+          `Помилка сервера (${response.status}).`
+        );
 
-            document.getElementById(
-                "model"
-            ).textContent = data.model || "—";
+        error.status = response.status;
+        error.kind = apiError.kind || "http_error";
 
-            document.getElementById(
-                "mode"
-            ).textContent = data.mode || "—";
+        error.retryable =
+          Boolean(apiError.retryable) ||
+          response.status >= 500 ||
+          response.status === 429;
 
-            healthStatus.textContent =
-                "Стан сервера: " +
-                (data.status || "невідомо") +
-                ". Сховище: " +
-                (data.storage || "невідомо");
+        error.fields = Array.isArray(apiError.fields)
+          ? apiError.fields
+          : [];
 
-            healthStatus.className =
-                data.status === "ok"
-                    ? "status success"
-                    : "status warning";
-
-        } catch (error) {
-            healthStatus.textContent =
-                "Не вдалося підключитися до сервера.";
-
-            healthStatus.className = "status error";
+        if (
+          !error.fields.length &&
+          Array.isArray(data?.detail)
+        ) {
+          error.fields = data.detail.map((item) => ({
+            field: Array.isArray(item.loc)
+              ? String(item.loc[item.loc.length - 1])
+              : "request",
+            message: String(
+              item.msg || "Неправильне значення"
+            )
+          }));
         }
+
+        error.retryAfter = response.headers.get(
+          "Retry-After"
+        );
+
+        throw error;
+      }
+
+      return data;
     }
 
-    function showResult(data, requestId) {
-        clearResult();
+    // ==========================================
+    // 6. Історія запитів
+    // ==========================================
 
-        resultCard.classList.remove("hidden");
+    function updateHistory(id, question, status) {
+      if (!id) {
+        return;
+      }
 
-        answerElement.textContent =
-            data.answer || "Відповідь відсутня.";
+      const history = readJson(
+        sessionStorage,
+        STORAGE.history,
+        []
+      );
 
-        const sources = Array.isArray(data.sources)
-            ? data.sources
-            : [];
+      const current = Array.isArray(history)
+        ? history
+        : [];
 
-        if (sources.length > 0) {
-            const title = document.createElement("strong");
+      const entry = {
+        id,
+        question: question || "Запитання",
+        status,
+        time: Date.now()
+      };
 
-            title.textContent = "Джерела:";
-            sourcesElement.appendChild(title);
+      const next = [
+        entry,
+        ...current.filter((item) => item.id !== id)
+      ].slice(0, 8);
 
-            sources.forEach(source => {
-                const element = document.createElement("span");
+      saveStored(
+        sessionStorage,
+        STORAGE.history,
+        JSON.stringify(next)
+      );
 
-                element.className = "source-item";
-                element.textContent = source;
+      renderHistory(next);
+    }
 
-                sourcesElement.appendChild(element);
-            });
+    function renderHistory(
+      history = readJson(
+        sessionStorage,
+        STORAGE.history,
+        []
+      )
+    ) {
+      const container = $("historyList");
+
+      container.replaceChildren();
+
+      if (!Array.isArray(history) || history.length === 0) {
+        const empty = document.createElement("p");
+
+        empty.className = "history-empty";
+        empty.textContent = "Поки що немає запитів";
+
+        container.append(empty);
+        return;
+      }
+
+      for (const entry of history) {
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.className = "history-item";
+
+        const title = document.createElement("span");
+        title.textContent = entry.question || "Запитання";
+
+        const detail = document.createElement("small");
+        detail.textContent = entry.status || "Запит";
+
+        button.append(title, detail);
+
+        button.addEventListener("click", () => {
+          openHistory(entry);
+        });
+
+        container.append(button);
+      }
+    }
+
+    // ==========================================
+    // 7. Відображення відповіді
+    // ==========================================
+
+    function sourceLabel(source) {
+      if (typeof source === "string") {
+        return source;
+      }
+
+      if (source && typeof source === "object") {
+        return String(
+          source.title ||
+          source.path ||
+          source.name ||
+          "Джерело"
+        );
+      }
+
+      return String(source ?? "Джерело");
+    }
+
+    function resultText() {
+      if (!state.result) {
+        return "";
+      }
+
+      const answer = state.result.answer || "";
+
+      const list = Array.isArray(state.result.sources)
+        ? state.result.sources
+        : [];
+
+      return (
+        `StudyAI — відповідь\n\n${answer}\n\n` +
+        `Джерела:\n` +
+        (list.map(sourceLabel).join("\n") || "Не вказано")
+      );
+    }
+
+    function renderResult(result) {
+      state.result = result || {
+        status: "no_evidence",
+        answer: "Немає відповіді.",
+        sources: []
+      };
+
+      $("answerText").textContent = String(
+        state.result.answer || "Відповідь відсутня."
+      );
+
+      const uncertain =
+        state.result.status === "no_evidence";
+
+      $("answerStatus").textContent = uncertain
+        ? "Недостатньо підтверджених даних"
+        : "Відповідь готова";
+
+      $("answerStatus").classList.toggle(
+        "uncertain",
+        uncertain
+      );
+
+      const container = $("sources");
+      container.replaceChildren();
+
+      const sources = Array.isArray(state.result.sources)
+        ? state.result.sources
+        : [];
+
+      if (!sources.length) {
+        const none = document.createElement("span");
+
+        none.className = "source";
+        none.textContent = "Джерела не вказані";
+
+        container.append(none);
+      } else {
+        for (const source of sources) {
+          const item = document.createElement("span");
+
+          item.className = "source";
+          item.textContent = sourceLabel(source);
+
+          container.append(item);
+        }
+      }
+
+      $("resultSection").hidden = false;
+    }
+
+    // ==========================================
+    // 8. Перевірка стану запиту
+    // ==========================================
+
+    function schedulePoll(generation, delay = 1500) {
+      stopPolling();
+
+      state.pollTimer = setTimeout(() => {
+        void pollRequest(generation);
+      }, delay);
+    }
+
+    async function pollRequest(generation) {
+      if (
+        generation !== state.generation ||
+        !state.activeId
+      ) {
+        return;
+      }
+
+      const requestId = state.activeId;
+
+      try {
+        const data = await requestJson(
+          `/api/requests/${encodeURIComponent(requestId)}`
+        );
+
+        if (
+          generation !== state.generation ||
+          requestId !== state.activeId
+        ) {
+          return;
+        }
+
+        hideError();
+
+        const status = String(
+          data.status || "pending"
+        );
+
+        state.status = status;
+
+        if (status === "pending") {
+          showActivity(
+            "Запит прийнято",
+            "Очікуємо початку обробки на сервері.",
+            "У черзі"
+          );
+
+          schedulePoll(generation);
+        } else if (status === "running") {
+          showActivity(
+            "AI опрацьовує запитання",
+            "Модель працює над відповіддю. " +
+            "Це може зайняти певний час.",
+            "Виконується"
+          );
+
+          schedulePoll(generation);
+        } else if (status === "completed") {
+          state.submission = null;
+
+          removeStored(
+            sessionStorage,
+            STORAGE.submission
+          );
+
+          showActivity(
+            "Обробку завершено",
+            "Результат збережено. " +
+            "Його можна відновити після F5.",
+            "Готово"
+          );
+
+          renderResult(data.result);
+
+          updateHistory(
+            requestId,
+            state.lastQuestion,
+            "Готово"
+          );
+        } else if (status === "cancelled") {
+          state.submission = null;
+
+          removeStored(
+            sessionStorage,
+            STORAGE.submission
+          );
+
+          $("resultSection").hidden = true;
+
+          showActivity(
+            "Запит скасовано",
+            "Можеш поставити нове запитання.",
+            "Скасовано"
+          );
+
+          updateHistory(
+            requestId,
+            state.lastQuestion,
+            "Скасовано"
+          );
         } else {
-            sourcesElement.textContent =
-                "Джерела не вказані.";
+          state.status = "failed";
+          state.retryMode = "submit";
+
+          showActivity(
+            "Обробку не завершено",
+            "Сервер не повернув результат.",
+            "Помилка"
+          );
+
+          showError(
+            "Невідомий стан запиту. Спробуй ще раз."
+          );
+        }
+      } catch (error) {
+        if (generation !== state.generation) {
+          return;
         }
 
-        requestIdElement.textContent =
-            "Request ID: " + requestId;
+        const temporaryFailure =
+          error.network ||
+          (
+            error.status >= 500 &&
+            error.kind === "http_error"
+          );
 
-        if (data.status === "no_evidence") {
-            setStatus(
-                "У документах недостатньо інформації.",
-                "warning"
+        state.retryMode = temporaryFailure
+          ? "poll"
+          : "submit";
+
+        if (!temporaryFailure) {
+          state.status = "failed";
+          state.submission = null;
+
+          removeStored(
+            sessionStorage,
+            STORAGE.submission
+          );
+
+          if (error.status === 404) {
+            removeStored(
+              sessionStorage,
+              STORAGE.request
             );
-        } else {
-            setStatus(
-                "Відповідь успішно отримано.",
-                "success"
-            );
+
+            state.activeId = null;
+          }
         }
+
+        showActivity(
+          "Не вдалося отримати результат",
+          "Стан запиту можна перевірити повторно.",
+          temporaryFailure ? "Немає зв'язку" : "Помилка"
+        );
+
+        showError(error.message, error);
+      }
     }
+
+    // ==========================================
+    // 9. Надсилання запитання
+    // ==========================================
 
     async function sendQuestion() {
-        if (isProcessing) {
-            return;
-        }
+      if (isWorking()) {
+        return;
+      }
 
-        const question = questionInput.value.trim();
+      const question = $("question").value.trim();
 
-        if (!question) {
-            setStatus(
-                "Введіть запитання.",
-                "error"
-            );
-            return;
-        }
-
-        activeRequestId = null;
-        activeStatusUrl = null;
-
-        clearResult();
-        setProcessing(true);
-
-        setStatus(
-            "Надсилаємо запитання..."
+      if (
+        question.length < state.min ||
+        question.length > state.max
+      ) {
+        showFieldError(
+          `Запитання має містити від ${state.min} ` +
+          `до ${state.max} символів.`
         );
 
-        try {
-            const response = await fetch(
-                "/api/ask",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        question: question,
-                        documents: [
-                            "data/notes.md"
-                        ]
-                    })
-                }
-            );
+        $("question").focus();
+        return;
+      }
 
-            const accepted = await response.json();
+      const payload = {
+        question,
+        documents
+      };
 
-            if (!response.ok) {
-                throw new Error(
-                    accepted.error?.message ||
-                    "Не вдалося створити запит"
-                );
-            }
+      const signature = JSON.stringify(payload);
 
-            activeRequestId = accepted.request_id;
-            activeStatusUrl = accepted.status_url;
+      // Ключ зберігається, поки сервер
+      // не підтвердить або не завершить запит.
+      // Після мережевого збою повторна спроба
+      // використає той самий ключ.
 
-            let completed = false;
+      if (
+        !state.submission ||
+        state.submission.signature !== signature
+      ) {
+        state.submission = {
+          key: newKey(),
+          signature
+        };
 
-            // До 120 секунд очікування
-            for (let attempt = 0; attempt < 240; attempt++) {
+        saveStored(
+          sessionStorage,
+          STORAGE.submission,
+          JSON.stringify(state.submission)
+        );
+      }
 
-                if (!isProcessing) {
-                    return;
-                }
+      const generation = ++state.generation;
 
-                setStatus(
-                    "AI обробляє запитання..."
-                );
+      stopPolling();
 
-                const resultResponse = await fetch(
-                    activeStatusUrl,
-                    { cache: "no-store" }
-                );
+      state.activeId = null;
 
-                const info = await resultResponse.json();
+      removeStored(
+        sessionStorage,
+        STORAGE.request
+      );
 
-                if (!resultResponse.ok) {
-                    const errorKind =
-                        info.error?.kind || "provider_error";
+      state.result = null;
+      state.lastQuestion = question;
+      state.status = "submitting";
+      state.submitting = true;
 
-                    const errorMessage =
-                        info.error?.message ||
-                        "Помилка обробки";
+      $("resultSection").hidden = true;
 
-                    throw new Error(
-                        errorKind + ": " + errorMessage
-                    );
-                }
+      hideError();
 
-                if (info.status === "completed") {
-                    showResult(
-                        info.result,
-                        activeRequestId
-                    );
+      showActivity(
+        "Надсилаємо запитання",
+        "Надсилаємо запит на сервер " +
+        "із захистом від дублювання.",
+        "Надсилання"
+      );
 
-                    completed = true;
-                    break;
-                }
+      try {
+        const accepted = await requestJson(
+          "/api/ask",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Idempotency-Key": state.submission.key
+            },
+            body: JSON.stringify(payload)
+          }
+        );
 
-                if (info.status === "cancelled") {
-                    setStatus(
-                        "Запит скасовано.",
-                        "warning"
-                    );
-
-                    completed = true;
-                    break;
-                }
-
-                await sleep(500);
-            }
-
-            if (!completed) {
-                throw new Error(
-                    "Перевищено час очікування відповіді."
-                );
-            }
-
-        } catch (error) {
-            setStatus(
-                "Помилка: " + error.message,
-                "error"
-            );
-
-        } finally {
-            setProcessing(false);
-            activeRequestId = null;
-            activeStatusUrl = null;
+        if (generation !== state.generation) {
+          return;
         }
+
+        if (!accepted.request_id) {
+          throw new Error(
+            "Сервер не повернув request_id."
+          );
+        }
+
+        state.activeId = String(
+          accepted.request_id
+        );
+
+        saveStored(
+          sessionStorage,
+          STORAGE.request,
+          state.activeId
+        );
+
+        state.status = "pending";
+
+        updateHistory(
+          state.activeId,
+          question,
+          "У процесі"
+        );
+
+        showActivity(
+          "Запит прийнято",
+          "Перевіряємо стан виконання на сервері.",
+          "У черзі"
+        );
+
+        schedulePoll(generation, 150);
+      } catch (error) {
+        if (generation !== state.generation) {
+          return;
+        }
+
+        state.status = "failed";
+        state.retryMode = "submit";
+
+        if (
+          error.status === 409 ||
+          error.status === 400 ||
+          error.status === 422
+        ) {
+          state.submission = null;
+
+          removeStored(
+            sessionStorage,
+            STORAGE.submission
+          );
+        }
+
+        showActivity(
+          "Запит не підтверджено",
+          "Після збою мережі повторна спроба " +
+          "використає той самий ключ.",
+          "Помилка"
+        );
+
+        showError(error.message, error);
+      } finally {
+        if (generation === state.generation) {
+          state.submitting = false;
+          refreshControls();
+        }
+      }
     }
 
-    async function cancelQuestion() {
-        if (!activeRequestId) {
-            return;
+    // ==========================================
+    // 10. Скасування запиту
+    // ==========================================
+
+    async function cancelRequest() {
+      if (
+        !state.activeId ||
+        state.cancelling
+      ) {
+        return;
+      }
+
+      state.cancelling = true;
+      refreshControls();
+
+      try {
+        await requestJson(
+          `/api/requests/${encodeURIComponent(
+            state.activeId
+          )}/cancel`,
+          {
+            method: "POST"
+          }
+        );
+
+        state.generation++;
+        stopPolling();
+
+        state.status = "cancelled";
+        state.submission = null;
+
+        removeStored(
+          sessionStorage,
+          STORAGE.submission
+        );
+
+        hideError();
+
+        showActivity(
+          "Запит скасовано",
+          "Нові запитання можна надсилати одразу.",
+          "Скасовано"
+        );
+
+        updateHistory(
+          state.activeId,
+          state.lastQuestion,
+          "Скасовано"
+        );
+
+        showToast("Запит скасовано");
+      } catch (error) {
+        state.retryMode = "poll";
+        showError(error.message, error);
+
+        if (error.status === 409) {
+          void resumeRequest();
         }
-
-        cancelButton.disabled = true;
-
-        try {
-            const response = await fetch(
-                "/api/requests/" +
-                encodeURIComponent(activeRequestId) +
-                "/cancel",
-                { method: "POST" }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.error?.message ||
-                    "Не вдалося скасувати запит"
-                );
-            }
-
-            setStatus(
-                "Запит скасовано.",
-                "warning"
-            );
-
-            isProcessing = false;
-
-        } catch (error) {
-            setStatus(
-                "Помилка скасування: " + error.message,
-                "error"
-            );
-
-        } finally {
-            cancelButton.disabled = false;
-            cancelButton.classList.add("hidden");
-        }
+      } finally {
+        state.cancelling = false;
+        refreshControls();
+      }
     }
 
-    sendButton.addEventListener(
-        "click",
-        sendQuestion
-    );
+    // ==========================================
+    // 11. Відновлення після F5
+    // ==========================================
 
-    clearButton.addEventListener(
+    function resumeRequest() {
+      if (!state.activeId) {
+        return;
+      }
+
+      stopPolling();
+
+      const generation = ++state.generation;
+
+      state.status = "pending";
+
+      hideError();
+
+      showActivity(
+        "Відновлюємо запит",
+        "Завантажуємо фактичний стан із сервера.",
+        "Перевірка"
+      );
+
+      void pollRequest(generation);
+    }
+
+    function openHistory(entry) {
+      if (!entry?.id) {
+        return;
+      }
+
+      state.activeId = String(entry.id);
+      state.lastQuestion = String(
+        entry.question || ""
+      );
+
+      $("question").value = state.lastQuestion;
+
+      saveStored(
+        sessionStorage,
+        STORAGE.draft,
+        state.lastQuestion
+      );
+
+      saveStored(
+        sessionStorage,
+        STORAGE.request,
+        state.activeId
+      );
+
+      $("resultSection").hidden = true;
+
+      refreshControls();
+      resumeRequest();
+    }
+
+    // ==========================================
+    // 12. Нова розмова
+    // ==========================================
+
+    function newConversation() {
+      state.generation++;
+      stopPolling();
+
+      state.activeId = null;
+      state.status = "idle";
+      state.submitting = false;
+      state.cancelling = false;
+      state.submission = null;
+      state.result = null;
+      state.lastQuestion = "";
+
+      $("question").value = "";
+      $("activityCard").hidden = true;
+      $("resultSection").hidden = true;
+
+      removeStored(
+        sessionStorage,
+        STORAGE.request
+      );
+
+      removeStored(
+        sessionStorage,
+        STORAGE.submission
+      );
+
+      removeStored(
+        sessionStorage,
+        STORAGE.draft
+      );
+
+      hideError();
+      refreshControls();
+
+      $("question").focus();
+    }
+
+    // ==========================================
+    // 13. Стан сервера
+    // ==========================================
+
+    async function loadHealth() {
+      try {
+        const data = await requestJson(
+          "/api/health"
+        );
+
+        $("providerValue").textContent = String(
+          data.provider || "—"
+        );
+
+        $("modelValue").textContent = String(
+          data.model || "—"
+        );
+
+        $("modeValue").textContent = String(
+          data.mode || "—"
+        );
+
+        $("ragValue").textContent = String(
+          data.extra?.rag || "невідомо"
+        );
+
+        const ok = data.status === "ok";
+
+        $("serviceStatus").textContent = ok
+          ? "Сервер працює"
+          : "Сервер потребує уваги";
+
+        $("serviceStatus").classList.toggle(
+          "offline",
+          !ok
+        );
+      } catch {
+        $("serviceStatus").textContent =
+          "Сервер недоступний";
+
+        $("serviceStatus").classList.add(
+          "offline"
+        );
+
+        $("providerValue").textContent = "—";
+        $("modelValue").textContent = "—";
+        $("modeValue").textContent = "—";
+        $("ragValue").textContent = "—";
+      }
+    }
+
+    // ==========================================
+    // 14. Обмеження з OpenAPI
+    // ==========================================
+
+    async function loadLimits() {
+      try {
+        const spec = await requestJson(
+          "/openapi.json"
+        );
+
+        const question =
+          spec?.components?.schemas
+            ?.AskInput?.properties?.question;
+
+        if (
+          Number.isInteger(question?.minLength)
+        ) {
+          state.min = question.minLength;
+        }
+
+        if (
+          Number.isInteger(question?.maxLength)
+        ) {
+          state.max = question.maxLength;
+        }
+
+        $("question").minLength = state.min;
+        $("question").maxLength = state.max;
+      } catch {
+        // Використовуємо значення за замовчуванням.
+      }
+
+      refreshControls();
+    }
+
+    // ==========================================
+    // 15. Темна та світла теми
+    // ==========================================
+
+    function setTheme(theme) {
+      const next =
+        theme === "light" ? "light" : "dark";
+
+      document.body.dataset.theme = next;
+
+      $("themeToggle").textContent =
+        next === "dark"
+          ? "☀ Світла тема"
+          : "☾ Темна тема";
+
+      saveStored(
+        localStorage,
+        STORAGE.theme,
+        next
+      );
+    }
+
+    // ==========================================
+    // 16. Копіювання і збереження
+    // ==========================================
+
+    async function copyAnswer() {
+      if (!state.result) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          resultText()
+        );
+
+        showToast("Відповідь скопійовано");
+      } catch {
+        showToast(
+          "Не вдалося скопіювати текст"
+        );
+      }
+    }
+
+    function downloadAnswer() {
+      if (!state.result) {
+        return;
+      }
+
+      const blob = new Blob(
+        [resultText()],
+        {
+          type: "text/plain;charset=utf-8"
+        }
+      );
+
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+
+      a.href = url;
+
+      a.download =
+        `studyai-${state.activeId || "answer"}.txt`;
+
+      document.body.append(a);
+      a.click();
+      a.remove();
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 500);
+
+      showToast("Відповідь збережено");
+    }
+
+    // ==========================================
+    // 17. Ініціалізація сайту
+    // ==========================================
+
+    function init() {
+      setTheme(
+        getStored(
+          localStorage,
+          STORAGE.theme
+        ) || "dark"
+      );
+
+      $("question").value = getStored(
+        sessionStorage,
+        STORAGE.draft
+      ) || "";
+
+      const pending = readJson(
+        sessionStorage,
+        STORAGE.submission,
+        null
+      );
+
+      if (
+        pending &&
+        typeof pending.key === "string" &&
+        typeof pending.signature === "string"
+      ) {
+        state.submission = pending;
+      }
+
+      renderHistory();
+      refreshControls();
+
+      void loadLimits();
+      void loadHealth();
+
+      // --------------------------------------
+      // Надсилання форми
+      // --------------------------------------
+
+      $("askForm").addEventListener(
+        "submit",
+        (event) => {
+          event.preventDefault();
+          void sendQuestion();
+        }
+      );
+
+      // --------------------------------------
+      // Збереження чернетки
+      // --------------------------------------
+
+      $("question").addEventListener(
+        "input",
+        () => {
+          saveStored(
+            sessionStorage,
+            STORAGE.draft,
+            $("question").value
+          );
+
+          clearFieldError();
+          refreshControls();
+        }
+      );
+
+      // --------------------------------------
+      // Ctrl + Enter
+      // --------------------------------------
+
+      $("question").addEventListener(
+        "keydown",
+        (event) => {
+          if (
+            event.key === "Enter" &&
+            (event.ctrlKey || event.metaKey)
+          ) {
+            event.preventDefault();
+            void sendQuestion();
+          }
+        }
+      );
+
+      // --------------------------------------
+      // Готові приклади
+      // --------------------------------------
+
+      document
+        .querySelectorAll("[data-prompt]")
+        .forEach((button) => {
+          button.addEventListener(
+            "click",
+            () => {
+              if (isWorking()) {
+                return;
+              }
+
+              $("question").value =
+                button.dataset.prompt || "";
+
+              saveStored(
+                sessionStorage,
+                STORAGE.draft,
+                $("question").value
+              );
+
+              clearFieldError();
+              refreshControls();
+              $("question").focus();
+            }
+          );
+        });
+
+      // --------------------------------------
+      // Очистити поле
+      // --------------------------------------
+
+      $("clearBtn").addEventListener(
         "click",
         () => {
-            questionInput.value = "";
-            clearResult();
-            setStatus("Поле очищено.");
+          $("question").value = "";
+
+          removeStored(
+            sessionStorage,
+            STORAGE.draft
+          );
+
+          clearFieldError();
+          refreshControls();
         }
-    );
+      );
 
-    cancelButton.addEventListener(
+      // --------------------------------------
+      // Кнопки сайту
+      // --------------------------------------
+
+      $("newChatBtn").addEventListener(
         "click",
-        cancelQuestion
-    );
+        newConversation
+      );
 
-    loadHealth();
-</script>
+      $("cancelBtn").addEventListener(
+        "click",
+        () => {
+          void cancelRequest();
+        }
+      );
 
+      $("resumeBtn").addEventListener(
+        "click",
+        resumeRequest
+      );
+
+      $("retryBtn").addEventListener(
+        "click",
+        () => {
+          hideError();
+
+          if (
+            state.retryMode === "poll" &&
+            state.activeId
+          ) {
+            resumeRequest();
+          } else {
+            void sendQuestion();
+          }
+        }
+      );
+
+      $("themeToggle").addEventListener(
+        "click",
+        () => {
+          setTheme(
+            document.body.dataset.theme === "dark"
+              ? "light"
+              : "dark"
+          );
+        }
+      );
+
+      $("refreshHealthBtn").addEventListener(
+        "click",
+        () => {
+          void loadHealth();
+        }
+      );
+
+      $("copyBtn").addEventListener(
+        "click",
+        () => {
+          void copyAnswer();
+        }
+      );
+
+      $("downloadBtn").addEventListener(
+        "click",
+        downloadAnswer
+      );
+
+      // --------------------------------------
+      // Відновлення запиту після F5
+      // --------------------------------------
+
+      const urlRequest = new URLSearchParams(
+        location.search
+      ).get("request_id");
+
+      const savedRequest =
+        urlRequest ||
+        getStored(
+          sessionStorage,
+          STORAGE.request
+        );
+
+      if (savedRequest) {
+        state.activeId = savedRequest;
+
+        const history = readJson(
+          sessionStorage,
+          STORAGE.history,
+          []
+        );
+
+        const found = Array.isArray(history)
+          ? history.find(
+              (entry) => entry.id === savedRequest
+            )
+          : null;
+
+        if (found) {
+          state.lastQuestion =
+            found.question || "";
+        }
+
+        saveStored(
+          sessionStorage,
+          STORAGE.request,
+          savedRequest
+        );
+
+        resumeRequest();
+      }
+    }
+
+    init();
+  </script>
 </body>
 </html>

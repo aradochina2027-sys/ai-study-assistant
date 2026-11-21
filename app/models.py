@@ -1,4 +1,6 @@
+
 from typing import Literal
+
 from pydantic import (
     BaseModel,
     Field,
@@ -25,7 +27,9 @@ class AskInput(BaseModel):
         value = value.strip()
 
         if not value:
-            raise ValueError("Question cannot be empty")
+            raise ValueError(
+                "Question cannot be empty"
+            )
 
         return value
 
@@ -46,9 +50,14 @@ class JobAccepted(BaseModel):
 
 class JobView(BaseModel):
     request_id: str
+
     status: Literal[
-        "pending", "running", "completed", "cancelled"
+        "pending",
+        "running",
+        "completed",
+        "cancelled",
     ]
+
     result: ModelOutput | None = None
 
 
@@ -58,9 +67,16 @@ class ErrorDetail(BaseModel):
     retryable: bool
     request_id: str
 
+    # ПР17 — помилки конкретних полів.
+    fields: list[dict[str, str]] | None = None
+
 
 class ErrorResponse(BaseModel):
     error: ErrorDetail
+
+    # Сумісність із поточним JavaScript,
+    # який читає detail при HTTP 422.
+    detail: list[dict] | None = None
 
 
 class ProviderMessage(BaseModel):
@@ -77,13 +93,18 @@ class ProviderRequest(BaseModel):
 
     temperature: float = 0.0
     max_tokens: int = 450
-    output_schema: dict = Field(default_factory=dict)
+
+    output_schema: dict = Field(
+        default_factory=dict
+    )
+
     prompt_version: str = "v1"
 
 
 class ProviderResult(BaseModel):
     text: str
     model: str
+
     input_tokens: int = 0
     output_tokens: int = 0
     elapsed_ms: float = 0.0
@@ -92,6 +113,7 @@ class ProviderResult(BaseModel):
 class StorageRecord(BaseModel):
     request_id: str
     status: str
+
     result_json: str | None = None
     error_json: str | None = None
 
