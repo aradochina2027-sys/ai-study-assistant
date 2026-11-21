@@ -1,9 +1,38 @@
 
+"""
+AI Study Assistant — основний сервіс.
+
+ПР15:
+    Обробка запитань та валідація відповідей.
+
+ПР16:
+    Семантичний пошук RAG.
+
+ПР17:
+    Фонові завдання та збереження в SQLite.
+
+ПР18:
+    Загальний дедлайн;
+    вимикач AI_ENABLED;
+    безпечний формат помилок;
+    збереження Retry-After.
+"""
+
 from __future__ import annotations
 
 import uuid
 
-from app.models import AppError, AskInput, ModelOutput
+from math import isfinite
+
+from app.deadlines import (
+    check_deadline,
+    request_deadline,
+)
+from app.models import (
+    AppError,
+    AskInput,
+    ModelOutput,
+)
 from app.orchestration import Orchestrator
 from app.rag.embedder import EmbeddingError
 from app.rag.index import build_index
@@ -12,24 +41,90 @@ from app.storage import SQLiteStorage
 from app.telemetry import Telemetry
 
 
+# Повідомлення обираються із заданого списку.
+# Текст винятку провайдера не переноситься
+# безпосередньо в публічну HTTP-відповідь.
+
+SAFE_ERROR_MESSAGES = {
+    "ai_disabled": (
+        "AI-функцію тимчасово вимкнено. "
+        "Спробуйте пізніше."
+    ),
+    "timeout": (
+        "Модель не відповіла вчасно."
+    ),
+    "deadline_exceeded": (
+        "Перевищено загальний час "
+        "обробки запитання."
+    ),
+    "provider_unavailable": (
+        "Провайдер тимчасово недоступний"
+    ),
+    "rate_limit": (
+        "AI-провайдер тимчасово обмежив "
+        "кількість запитів."
+    ),
+    "client_rate_limit": (
+        "Надіслано забагато запитів. "
+        "Спробуйте пізніше."
+    ),
+    "concurrency_limit": (
+        "Усі місця для AI-запитів зайняті. "
+        "Спробуйте пізніше."
+    ),
+    "circuit_open": (
+        "AI-провайдер тимчасово недоступний. "
+        "Спробуйте пізніше."
+    ),
+    "rag_unavailable": (
+        "Семантичний пошук тимчасово "
+        "недоступний."
+    ),
+    "rag_document_unsupported": (
+        "Вибрані документи не підтримуються "
+        "в режимі RAG."
+    ),
+    "provider_invalid_response": (
+        "AI-провайдер повернув некоректну "
+        "відповідь."
+    ),
+    "provider_error": (
+        "Не вдалося отримати відповідь "
+        "від AI-провайдера."
+    ),
+    "invalid_output": (
+        "Відповідь моделі не пройшла перевірку."
+    ),
+    "auth": (
+        "Не вдалося авторизуватися "
+        "в AI-провайдера."
+    ),
+    "bad_request": (
+        "AI-провайдер відхилив запит."
+    ),
+    "budget": (
+        "Вичерпано денний ліміт "
+        "викликів AI."
+    ),
+    "empty_documents": (
+        "Вибрані документи порожні."
+    ),
+    "invalid_document": (
+        "Некоректний тип або шлях документа."
+    ),
+    "document_missing": (
+        "Навчальний документ не знайдено."
+    ),
+    "document_too_large": (
+        "Навчальний документ завеликий."
+    ),
+    "mid_stream": (
+        "З'єднання з моделлю перервано."
+    ),
+}
+
+
 class StudyService:
-    """
-    Основний сервіс AI Study Assistant.
-
-    ПР15:
-    - завантаження документів;
-    - генерація відповіді;
-    - перевірка результату;
-    - збереження результату;
-    - контрольовані помилки.
-
-    ПР16:
-    - семантичний пошук RAG;
-    - побудова векторного індексу;
-    - пошук релевантних фрагментів;
-    - формування контексту для Qwen3.
-    """
-
     def __init__(
         self,
         storage: SQLiteStorage,
@@ -41,7 +136,38 @@ class StudyService:
         self.telemetry = telemetry
 
     # ==========================================
-    # ПР16 — Семантичний пошук RAG
+    # 1. Перевірка AI_ENABLED
+    # ==========================================
+
+    def _check_ai_enabled(
+        self,
+        request_id: str,
+    ) -> None:
+        settings = self.orchestrator.settings
+
+        if not getattr(
+            settings,
+            "ai_enabled",
+            True,
+        ):
+            self.telemetry.emit(
+                request_id,
+                "service",
+                "ai_disabled",
+            )
+
+            raise AppError(
+                "ai_disabled",
+                (
+                    "AI-функцію тимчасово "
+                    "вимкнено."
+                ),
+                503,
+                False,
+            )
+
+    # ==========================================
+    # 2. Підготовка RAG-контексту
     # ==========================================
 
     def _get_rag_context(
@@ -51,35 +177,29 @@ class StudyService:
         request_id: str,
     ) -> str | None:
         """
-        Повертає контекст із релевантних фрагментів.
-
-        None:
-            RAG вимкнений.
-
-        Порожній рядок:
-            релевантних фрагментів немає.
-
-        Непорожній рядок:
-            знайдено контекст для основної моделі.
+        Повертає:
+            None — RAG вимкнено;
+            "" — не знайдено фрагментів;
+            str — контекст із фрагментів.
         """
 
         settings = self.orchestrator.settings
 
-        # Якщо RAG вимкнено, залишаємо
-        # стандартний сценарій ПР15.
         if not settings.rag_enabled:
             return None
 
-        # На поточному етапі підтримується
-        # лише один документ.
         if documents != ["data/notes.md"]:
             raise AppError(
                 "rag_document_unsupported",
-                "Семантичний пошук наразі підтримує "
-                "лише data/notes.md.",
+                (
+                    "Семантичний пошук наразі "
+                    "підтримує data/notes.md."
+                ),
                 400,
                 False,
             )
+
+        check_deadline()
 
         self.telemetry.emit(
             request_id,
@@ -88,13 +208,6 @@ class StudyService:
         )
 
         try:
-            # ==================================
-            # 1. Створення або оновлення індексу
-            # ==================================
-
-            # Якщо документ не змінювався,
-            # build_index використовує
-            # раніше створений індекс.
             build_index(
                 document_path="data/notes.md",
                 index_path=settings.rag_index_path,
@@ -103,15 +216,13 @@ class StudyService:
                 overlap_chars=40,
             )
 
+            check_deadline()
+
             self.telemetry.emit(
                 request_id,
                 "rag",
                 "index_ready",
             )
-
-            # ==================================
-            # 2. Семантичний пошук
-            # ==================================
 
             hits = search_index(
                 question,
@@ -120,12 +231,17 @@ class StudyService:
                 min_score=settings.rag_min_score,
             )
 
+            check_deadline()
+
         except (
             EmbeddingError,
             FileNotFoundError,
             ValueError,
             OSError,
         ) as exc:
+            # Якщо вичерпано дедлайн,
+            # повідомляємо саме про дедлайн.
+            check_deadline()
 
             self.telemetry.emit(
                 request_id,
@@ -135,16 +251,13 @@ class StudyService:
 
             raise AppError(
                 "rag_unavailable",
-                "Семантичний пошук тимчасово "
-                "недоступний. Перевірте роботу "
-                "Ollama та індекс документів.",
+                (
+                    "Семантичний пошук тимчасово "
+                    "недоступний."
+                ),
                 503,
                 True,
             ) from exc
-
-        # ======================================
-        # 3. Журналювання кількості результатів
-        # ======================================
 
         self.telemetry.emit(
             request_id,
@@ -152,45 +265,35 @@ class StudyService:
             f"hits_{len(hits)}",
         )
 
-        # Якщо нічого не знайдено,
-        # не передаємо моделі порожній контекст.
         if not hits:
             return ""
-
-        # ======================================
-        # 4. Формування контексту
-        # ======================================
 
         blocks: list[str] = []
         used_chars = 0
 
         for hit in hits:
+            check_deadline()
 
-            # Кожен фрагмент містить
-            # назву джерела.
             block = (
                 f"<<<DOC:{hit.source}>>>\n"
                 f"{hit.text}\n"
                 f"<<<END_DOC>>>"
             )
 
-            # Додаємо розділювач між блоками.
-            separator_size = 2 if blocks else 0
+            separator_chars = 2 if blocks else 0
 
-            needed_chars = (
-                len(block) + separator_size
+            required_chars = (
+                len(block) + separator_chars
             )
 
-            # Не перевищуємо максимальний
-            # розмір контексту з ПР15.
             if (
-                used_chars + needed_chars
+                used_chars + required_chars
                 > settings.context_max_chars
             ):
                 continue
 
             blocks.append(block)
-            used_chars += needed_chars
+            used_chars += required_chars
 
         if not blocks:
             return ""
@@ -206,7 +309,7 @@ class StudyService:
         return context
 
     # ==========================================
-    # ПР15 + ПР16 — Основний AI-сценарій
+    # 3. Основний сценарій
     # ==========================================
 
     def handle_question(
@@ -215,29 +318,64 @@ class StudyService:
         request_id: str | None = None,
     ) -> ModelOutput:
         """
-        Повний сценарій:
+        Повний шлях обробки запитання.
 
-        1. Прийняти запитання.
-        2. Перевірити документи.
-        3. Виконати RAG, якщо ввімкнено.
-        4. Сформувати контекст.
-        5. Викликати Qwen3 через Orchestrator.
-        6. Повернути перевірений результат.
+        Спочатку перевіряємо вимикач AI.
+
+        Якщо він вимкнений, не запускаємо:
+        - читання контексту;
+        - побудову RAG-індексу;
+        - embeddings;
+        - основну AI-модель.
         """
 
         request_id = request_id or str(
             uuid.uuid4()
         )
 
+        self._check_ai_enabled(request_id)
+
+        settings = self.orchestrator.settings
+
+        total_timeout_s = getattr(
+            settings,
+            "request_timeout_s",
+            None,
+        )
+
+        if total_timeout_s is None:
+            total_timeout_s = (
+                settings.llm_timeout_s
+            )
+
+        with request_deadline(
+            total_timeout_s
+        ):
+            return self._handle_with_deadline(
+                data,
+                request_id,
+            )
+
+    # ==========================================
+    # 4. Виконання в межах дедлайну
+    # ==========================================
+
+    def _handle_with_deadline(
+        self,
+        data: AskInput,
+        request_id: str,
+    ) -> ModelOutput:
         self.telemetry.emit(
             request_id,
             "service",
             "started",
         )
 
-        # ======================================
-        # 1. Перевірка та завантаження документів
-        # ======================================
+        check_deadline()
+
+        # --------------------------------------
+        # 4.1. Завантаження документів
+        # --------------------------------------
 
         original_context = (
             self.storage.load_documents(
@@ -246,9 +384,11 @@ class StudyService:
             )
         )
 
-        # ======================================
-        # 2. Додатковий AI-компонент RAG
-        # ======================================
+        check_deadline()
+
+        # --------------------------------------
+        # 4.2. Додатковий компонент RAG
+        # --------------------------------------
 
         rag_context = self._get_rag_context(
             data.question,
@@ -256,20 +396,16 @@ class StudyService:
             request_id,
         )
 
-        # ======================================
-        # 3. Вибір контексту
-        # ======================================
+        check_deadline()
+
+        # --------------------------------------
+        # 4.3. Вибір контексту
+        # --------------------------------------
 
         if rag_context is None:
-
-            # RAG вимкнено.
-            # Використовуємо старий сценарій ПР15.
             context = original_context
 
         elif not rag_context:
-
-            # RAG працює, але підтвердженої
-            # інформації не знайдено.
             result = ModelOutput(
                 status="no_evidence",
                 answer=(
@@ -294,21 +430,13 @@ class StudyService:
             return result
 
         else:
-
-            # Передаємо основній моделі тільки
-            # релевантні навчальні фрагменти.
             context = rag_context
 
-        # ======================================
-        # 4. Генерація відповіді через Qwen3
-        # ======================================
+        check_deadline()
 
-        # Orchestrator виконує:
-        # - формування промпту;
-        # - виклик AI-провайдера;
-        # - перевірку JSON;
-        # - перевірку джерел;
-        # - повтор при невалідній відповіді.
+        # --------------------------------------
+        # 4.4. Генерація та перевірка
+        # --------------------------------------
 
         result = self.orchestrator.answer(
             data.question,
@@ -317,9 +445,7 @@ class StudyService:
             request_id,
         )
 
-        # ======================================
-        # 5. Завершення сценарію
-        # ======================================
+        check_deadline()
 
         self.telemetry.emit(
             request_id,
@@ -330,56 +456,118 @@ class StudyService:
         return result
 
     # ==========================================
-    # ПР14–ПР16 — Фонове виконання запитів
+    # 5. Безпечне збереження помилок
+    # ==========================================
+
+    @staticmethod
+    def _error_payload(
+        error: AppError,
+    ) -> dict:
+        """
+        Перетворює AppError на дані для SQLite.
+
+        Сторонні тексти винятків,
+        API-ключі та traceback не зберігаємо.
+
+        Retry-After зберігається тільки
+        для дозволених контрольованих помилок.
+        """
+
+        safe_message = SAFE_ERROR_MESSAGES.get(
+            error.kind
+        )
+
+        if safe_message is None:
+            return {
+                "kind": "internal_error",
+                "message": (
+                    "Внутрішня помилка сервера."
+                ),
+                "retryable": False,
+                "status_code": 500,
+            }
+
+        payload = {
+            "kind": error.kind,
+            "message": safe_message,
+            "retryable": bool(error.retryable),
+            "status_code": error.status_code,
+        }
+
+        retry_after = getattr(
+            error,
+            "retry_after_s",
+            None,
+        )
+
+        if (
+            error.retryable
+            and error.status_code in {429, 503, 504}
+            and retry_after is not None
+            and not isinstance(retry_after, bool)
+        ):
+            try:
+                seconds = float(retry_after)
+            except (TypeError, ValueError):
+                seconds = 0.0
+
+            if (
+                isfinite(seconds)
+                and seconds > 0
+            ):
+                payload["retry_after_s"] = seconds
+
+        return payload
+
+    # ==========================================
+    # 6. Фонове виконання FastAPI
     # ==========================================
 
     def run_job(
         self,
         data: AskInput,
         request_id: str,
-    ):
+    ) -> None:
         """
-        Виконує AI-сценарій у фоновій задачі.
+        Результат або контрольована помилка
+        зберігаються у SQLite.
 
-        Результат зберігається в SQLite.
-
-        У разі збою зберігається контрольована
-        помилка, яку потім повертає API.
+        Серверний GET /api/requests/{request_id}
+        читає збережені дані та формує
+        HTTP-відповідь для браузера.
         """
 
-        # Позначаємо запит як активний.
-        self.storage.set_running(request_id)
+        self.storage.set_running(
+            request_id
+        )
 
         try:
-            # Викликаємо основний сценарій.
             result = self.handle_question(
                 data,
                 request_id,
             )
 
-            # Зберігаємо перевірену відповідь.
             self.storage.complete(
                 request_id,
                 result.model_dump(),
             )
 
-        except AppError as err:
+        except AppError as error:
+            self.telemetry.emit(
+                request_id,
+                "service",
+                f"error_{error.kind}",
+            )
 
-            # Контрольована помилка.
             self.storage.fail(
                 request_id,
-                {
-                    "kind": err.kind,
-                    "message": err.message,
-                    "retryable": err.retryable,
-                    "status_code": err.status_code,
-                },
+                self._error_payload(error),
             )
 
         except Exception:
+            # Не виводимо repr(exception),
+            # traceback, промпт чи API-ключ.
 
-            # Не передаємо користувачеві
-            # внутрішній текст винятку.
             self.telemetry.emit(
                 request_id,
                 "service",
@@ -391,9 +579,9 @@ class StudyService:
                 {
                     "kind": "internal_error",
                     "message": (
-                        "Внутрішня помилка сервера"
+                        "Внутрішня помилка сервера."
                     ),
                     "retryable": False,
-                    "status_code": 503,
+                    "status_code": 500,
                 },
             )

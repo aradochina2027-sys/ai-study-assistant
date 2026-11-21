@@ -1,14 +1,44 @@
 
+"""ПР16–ПР18: embeddings через Ollama з опційним TTL-кешем.
+
+Кеш вимкнений за замовчуванням. Для локального
+однокористувацького проєкту встановіть:
+STUDYAI_EMBED_CACHE_ENABLED=1
+STUDYAI_EMBED_CACHE_OWNER=local-studyai
+"""
+
 from __future__ import annotations
+
+import os
 
 from math import isfinite
 from typing import Sequence
 
 import httpx
 
+from app.deadlines import (
+    check_deadline,
+    http_timeout,
+)
+from app.rag.cache import EmbeddingCache
+
 
 class EmbeddingError(RuntimeError):
-    """Контрольована помилка компонента embeddings."""
+    """Контрольована помилка embeddings."""
+
+
+_DEFAULT_CACHE = EmbeddingCache(
+    ttl_seconds=3600,
+    max_entries=2048,
+)
+
+
+def embedding_cache_stats() -> dict[str, int | float]:
+    return _DEFAULT_CACHE.stats()
+
+
+def clear_embedding_cache() -> None:
+    _DEFAULT_CACHE.clear()
 
 
 def embed_texts(
@@ -18,117 +48,281 @@ def embed_texts(
     base_url: str = "http://localhost:11434",
     timeout_s: float = 120.0,
     client: httpx.Client | None = None,
+    cache_owner: str | None = None,
+    bypass_cache: bool = False,
+    cache: EmbeddingCache | None = None,
 ) -> list[list[float]]:
-    """
-    Створює вектори текстів через локальну Ollama.
+    """Повертає вектори в порядку вхідних текстів."""
 
-    Один текст -> один вектор.
-    Порожній список -> порожній результат.
-    """
+    # ==========================================
+    # 1. Перевірка вхідних даних
+    # ==========================================
 
     if not isinstance(texts, (list, tuple)):
-        raise TypeError("texts має бути списком текстів")
+        raise TypeError(
+            "texts має бути списком або кортежем"
+        )
 
     if not texts:
         return []
 
     if any(
-        not isinstance(text, str) or not text.strip()
+        not isinstance(text, str)
+        or not text.strip()
         for text in texts
     ):
         raise ValueError(
-            "Кожен текст має бути непорожнім рядком"
+            "Усі тексти мають бути непорожніми рядками"
         )
 
     if not isinstance(model, str) or not model.strip():
-        raise ValueError("Потрібно вказати модель")
+        raise ValueError(
+            "Назва моделі не може бути порожньою"
+        )
 
-    if timeout_s <= 0:
-        raise ValueError("Таймаут має бути додатним")
+    if (
+        not isinstance(timeout_s, (int, float))
+        or not isfinite(timeout_s)
+        or timeout_s <= 0
+    ):
+        raise ValueError(
+            "timeout_s має бути додатним числом"
+        )
 
-    url = f"{base_url.rstrip('/')}/api/embed"
+    check_deadline()
 
-    payload = {
-        "model": model,
-        "input": list(texts),
+    # ==========================================
+    # 2. Налаштування кешу
+    # ==========================================
+
+    enabled = os.getenv(
+        "STUDYAI_EMBED_CACHE_ENABLED",
+        "0",
+    ).lower() in {
+        "1", "true", "yes", "on"
     }
 
-    def request_vectors(
-        http_client: httpx.Client,
-    ) -> list[list[float]]:
-        try:
-            response = http_client.post(
-                url,
-                json=payload,
-                timeout=timeout_s,
+    owner = (
+        cache_owner
+        if cache_owner is not None
+        else os.getenv(
+            "STUDYAI_EMBED_CACHE_OWNER",
+            "",
+        )
+    )
+
+    revision = os.getenv(
+        "STUDYAI_EMBED_CACHE_MODEL_REVISION",
+        "v1",
+    )
+
+    if enabled and not owner.strip():
+        raise ValueError(
+            "Задайте STUDYAI_EMBED_CACHE_OWNER "
+            "для ізоляції кешу"
+        )
+
+    active_cache = (
+        cache
+        if cache is not None
+        else _DEFAULT_CACHE
+    )
+
+    use_cache = enabled and not bypass_cache
+
+    # ==========================================
+    # 3. Пошук готових векторів у кеші
+    # ==========================================
+
+    vectors: list[list[float] | None] = [
+        None
+    ] * len(texts)
+
+    missing: dict[str, list[int]] = {}
+
+    for pos, text in enumerate(texts):
+        if use_cache:
+            saved = active_cache.get(
+                text,
+                model=model,
+                owner_id=owner,
+                revision=revision,
+                base_url=base_url,
             )
 
-            response.raise_for_status()
+            if saved is not None:
+                vectors[pos] = saved
+                continue
 
-            result = response.json()
+        # Якщо кеш увімкнений, однакові
+        # тексти в межах однієї партії
+        # відправляємо до моделі один раз.
+        key = (
+            text
+            if use_cache
+            else f"{pos}"
+        )
 
-        except (
-            httpx.TimeoutException,
-            httpx.RequestError,
-            httpx.HTTPStatusError,
-            ValueError,
-        ) as exc:
-            raise EmbeddingError(
-                "Не вдалося отримати embeddings з Ollama."
-            ) from exc
+        missing.setdefault(
+            key,
+            [],
+        ).append(pos)
 
-        if not isinstance(result, dict):
-            raise EmbeddingError(
-                "Некоректний формат відповіді Ollama."
-            )
+    # ==========================================
+    # 4. Отримання відсутніх embeddings
+    # ==========================================
 
-        raw_vectors = result.get("embeddings")
+    if missing:
+        missing_texts = [
+            texts[positions[0]]
+            for positions in missing.values()
+        ]
 
-        if (
-            not isinstance(raw_vectors, list)
-            or len(raw_vectors) != len(texts)
-        ):
-            raise EmbeddingError(
-                "Кількість векторів не відповідає "
-                "кількості текстів."
-            )
+        payload = {
+            "model": model,
+            "input": list(missing_texts),
+        }
 
-        vectors: list[list[float]] = []
+        url = (
+            base_url.rstrip("/")
+            + "/api/embed"
+        )
 
-        for raw_vector in raw_vectors:
-            if not isinstance(raw_vector, list) or not raw_vector:
-                raise EmbeddingError(
-                    "Ollama повернула порожній або "
-                    "некоректний вектор."
+        def fetch(
+            http_client: httpx.Client,
+        ) -> list[list[float]]:
+            check_deadline()
+
+            try:
+                response = http_client.post(
+                    url,
+                    json=payload,
+                    timeout=http_timeout(timeout_s),
                 )
 
-            vector: list[float] = []
+                response.raise_for_status()
 
-            for value in raw_vector:
-                if (
-                    isinstance(value, bool)
-                    or not isinstance(value, (int, float))
-                    or not isfinite(value)
-                ):
-                    raise EmbeddingError(
-                        "Вектор містить некоректне число."
-                    )
+                result = response.json()
 
-                vector.append(float(value))
+            except (
+                httpx.TimeoutException,
+                httpx.RequestError,
+                httpx.HTTPStatusError,
+                ValueError,
+            ) as exc:
+                check_deadline()
 
-            vectors.append(vector)
+                raise EmbeddingError(
+                    "Не вдалося отримати embeddings "
+                    "з Ollama"
+                ) from exc
 
-        dimensions = {len(vector) for vector in vectors}
+            check_deadline()
 
-        if len(dimensions) != 1:
-            raise EmbeddingError(
-                "Вектори мають різну розмірність."
+            if not isinstance(result, dict):
+                raise EmbeddingError(
+                    "Некоректна відповідь Ollama"
+                )
+
+            raw_vectors = result.get(
+                "embeddings"
             )
 
-        return vectors
+            if (
+                not isinstance(raw_vectors, list)
+                or len(raw_vectors)
+                != len(missing_texts)
+            ):
+                raise EmbeddingError(
+                    "Кількість векторів не відповідає "
+                    "кількості текстів"
+                )
 
-    if client is not None:
-        return request_vectors(client)
+            received: list[list[float]] = []
 
-    with httpx.Client(timeout=timeout_s) as http_client:
-        return request_vectors(http_client)
+            for raw in raw_vectors:
+                if (
+                    not isinstance(raw, list)
+                    or not raw
+                    or any(
+                        isinstance(x, bool)
+                        or not isinstance(
+                            x,
+                            (int, float),
+                        )
+                        or not isfinite(x)
+                        for x in raw
+                    )
+                ):
+                    raise EmbeddingError(
+                        "Embedding-вектор містить "
+                        "некоректні числа"
+                    )
+
+                received.append(
+                    [
+                        float(x)
+                        for x in raw
+                    ]
+                )
+
+            return received
+
+        if client is None:
+            with httpx.Client() as local_client:
+                fetched = fetch(local_client)
+        else:
+            fetched = fetch(client)
+
+        # Відновлюємо початковий порядок
+        # усіх векторів.
+        for positions, vector in zip(
+            missing.values(),
+            fetched,
+        ):
+            for pos in positions:
+                vectors[pos] = vector.copy()
+
+    # ==========================================
+    # 5. Перевірка кінцевого результату
+    # ==========================================
+
+    checked = [
+        vector
+        for vector in vectors
+        if vector is not None
+    ]
+
+    if (
+        len(checked) != len(texts)
+        or len({
+            len(vector)
+            for vector in checked
+        }) != 1
+    ):
+        raise EmbeddingError(
+            "Отримано embedding-вектори "
+            "різної розмірності"
+        )
+
+    # ==========================================
+    # 6. Збереження нових векторів у кеші
+    # ==========================================
+
+    if missing and use_cache:
+        for text, vector in zip(
+            missing_texts,
+            fetched,
+        ):
+            active_cache.put(
+                text,
+                vector,
+                model=model,
+                owner_id=owner,
+                revision=revision,
+                base_url=base_url,
+            )
+
+    check_deadline()
+
+    return checked

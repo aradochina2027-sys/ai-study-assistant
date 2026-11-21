@@ -1,23 +1,85 @@
 
-from dataclasses import dataclass
-from pathlib import Path
-from math import isfinite
+"""
+Налаштування AI Study Assistant.
+
+ПР15:
+    AI-провайдер, модель, бюджет,
+    промпти та mock.
+
+ПР16:
+    RAG та embeddings.
+
+ПР18:
+    AI_ENABLED — вимикач AI-функції.
+"""
+
 import os
 
+from dataclasses import dataclass
+from math import isfinite
+from pathlib import Path
+
 from dotenv import load_dotenv
+
+
+def read_bool_env(
+    name: str,
+    default: bool,
+) -> bool:
+    """
+    Безпечне читання булевого налаштування.
+
+    Підтримуються:
+        true / false
+        1 / 0
+        yes / no
+        on / off
+
+    Помилкове значення не ігнорується.
+    """
+
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    normalized = value.strip().lower()
+
+    if normalized in {
+        "true", "1", "yes", "on"
+    }:
+        return True
+
+    if normalized in {
+        "false", "0", "no", "off"
+    }:
+        return False
+
+    raise ValueError(
+        f"Некоректне значення {name}. "
+        "Використовуйте true або false."
+    )
 
 
 @dataclass(frozen=True)
 class Settings:
     # ==========================================
-    # Основна AI-модель — ПР15
+    # ПР15 — Основна модель
     # ==========================================
 
     llm_provider: str = "mock"
     llm_model: str = "mock-study-v1"
     llm_api_key: str = ""
-    llm_base_url: str = "http://localhost:11434/v1"
+    llm_base_url: str = (
+        "http://localhost:11434/v1"
+    )
     llm_timeout_s: float = 120.0
+
+    # ==========================================
+    # ПР18 — Вимикач AI
+    # ==========================================
+
+    ai_enabled: bool = True
 
     # ==========================================
     # Сховище та журналювання
@@ -36,70 +98,88 @@ class Settings:
     mock_failure_kind: str = "none"
 
     # ==========================================
-    # Запис і відтворення відповідей
+    # Записи провайдера
     # ==========================================
 
     record_mode: str = "replay"
-    recordings_dir: str = "tests/recordings/study"
+    recordings_dir: str = (
+        "tests/recordings/study"
+    )
 
     # ==========================================
-    # Бюджет і контекст — ПР15
+    # Бюджет і навчальний контекст
     # ==========================================
 
     daily_call_limit: int = 40
     context_max_chars: int = 10000
-    prompt_file: str = "prompts/study/v1.md"
+    prompt_file: str = (
+        "prompts/study/v1.md"
+    )
 
     # ==========================================
-    # Семантичний пошук RAG — ПР16
+    # ПР16 — RAG
     # ==========================================
 
-    # Чи використовувати RAG.
-    # За замовчуванням вимкнено,
-    # щоб старі тести ПР15 працювали без Ollama.
     rag_enabled: bool = False
 
-    # Локальна модель для створення embeddings.
-    rag_embedding_model: str = "qwen3-embedding:0.6b"
+    rag_embedding_model: str = (
+        "qwen3-embedding:0.6b"
+    )
 
-    # Шлях до локального векторного індексу.
-    rag_index_path: str = ".rag_index/notes.json"
+    rag_index_path: str = (
+        ".rag_index/notes.json"
+    )
 
-    # Максимальна кількість знайдених фрагментів.
     rag_top_k: int = 3
-
-    # Мінімальна косинусна схожість.
     rag_min_score: float = 0.25
 
     # ==========================================
-    # Перевірка налаштувань
+    # Перевірка конфігурації
     # ==========================================
 
-    def validate(self):
-        providers = {
+    def validate(self) -> None:
+        allowed_providers = {
             "mock",
             "ollama",
             "openai_compat",
             "recorded",
         }
 
-        if self.llm_provider not in providers:
-            raise ValueError("Invalid LLM_PROVIDER")
+        if self.llm_provider not in allowed_providers:
+            raise ValueError(
+                "Invalid LLM_PROVIDER"
+            )
 
         if (
             self.llm_provider == "openai_compat"
             and not self.llm_api_key
         ):
-            raise ValueError("LLM_API_KEY is required")
+            raise ValueError(
+                "LLM_API_KEY is required"
+            )
 
         if not self.llm_model.strip():
-            raise ValueError("LLM_MODEL cannot be empty")
+            raise ValueError(
+                "LLM_MODEL cannot be empty"
+            )
 
-        if not 0 < self.llm_timeout_s <= 600:
-            raise ValueError("Invalid LLM_TIMEOUT_S")
+        if (
+            not isfinite(self.llm_timeout_s)
+            or not 0 < self.llm_timeout_s <= 600
+        ):
+            raise ValueError(
+                "Invalid LLM_TIMEOUT_S"
+            )
+
+        if not isinstance(self.ai_enabled, bool):
+            raise ValueError(
+                "Invalid AI_ENABLED"
+            )
 
         if not 0 <= self.mock_failure_rate <= 1:
-            raise ValueError("Invalid MOCK_FAILURE_RATE")
+            raise ValueError(
+                "Invalid MOCK_FAILURE_RATE"
+            )
 
         if self.mock_failure_kind not in {
             "none",
@@ -109,37 +189,55 @@ class Settings:
             "invalid_json",
             "mid_stream",
         }:
-            raise ValueError("Invalid MOCK_FAILURE_KIND")
+            raise ValueError(
+                "Invalid MOCK_FAILURE_KIND"
+            )
 
         if self.record_mode not in {
             "replay",
             "record",
             "passthrough",
         }:
-            raise ValueError("Invalid RECORD_MODE")
+            raise ValueError(
+                "Invalid RECORD_MODE"
+            )
 
         if not 1 <= self.daily_call_limit <= 10000:
-            raise ValueError("Invalid DAILY_CALL_LIMIT")
+            raise ValueError(
+                "Invalid DAILY_CALL_LIMIT"
+            )
 
         if not 1000 <= self.context_max_chars <= 200000:
-            raise ValueError("Invalid CONTEXT_MAX_CHARS")
+            raise ValueError(
+                "Invalid CONTEXT_MAX_CHARS"
+            )
 
         if not self.llm_base_url.startswith(
             ("http://", "https://")
         ):
-            raise ValueError("Invalid LLM_BASE_URL")
-
-        if not Path(self.prompt_file).is_file():
             raise ValueError(
-                "Prompt file not found: " + self.prompt_file
+                "Invalid LLM_BASE_URL"
+            )
+
+        if not Path(
+            self.prompt_file
+        ).is_file():
+            raise ValueError(
+                "Prompt file not found: "
+                + self.prompt_file
             )
 
         # ======================================
-        # Перевірка налаштувань RAG — ПР16
+        # ПР16 — Перевірка RAG
         # ======================================
 
-        if not isinstance(self.rag_enabled, bool):
-            raise ValueError("Invalid RAG_ENABLED")
+        if not isinstance(
+            self.rag_enabled,
+            bool,
+        ):
+            raise ValueError(
+                "Invalid RAG_ENABLED"
+            )
 
         if not self.rag_embedding_model.strip():
             raise ValueError(
@@ -158,22 +256,28 @@ class Settings:
 
         if (
             not isfinite(self.rag_min_score)
-            or not -1.0 <= self.rag_min_score <= 1.0
+            or not -1 <= self.rag_min_score <= 1
         ):
             raise ValueError(
                 "RAG_MIN_SCORE must be between -1 and 1"
             )
 
 
-# ==============================================
-# Завантаження налаштувань із .env
-# ==============================================
-
 def load_settings() -> Settings:
+    """
+    Читає змінні середовища та .env.
+
+    Якщо AI_ENABLED=false,
+    StudyService не запускає AI-сценарій.
+    """
+
     load_dotenv()
 
     settings = Settings(
-        # Основна AI-модель
+        # ======================================
+        # Основна модель
+        # ======================================
+
         llm_provider=os.getenv(
             "LLM_PROVIDER",
             "mock",
@@ -195,10 +299,25 @@ def load_settings() -> Settings:
         ),
 
         llm_timeout_s=float(
-            os.getenv("LLM_TIMEOUT_S", "120")
+            os.getenv(
+                "LLM_TIMEOUT_S",
+                "120",
+            )
         ),
 
-        # Сховище та журналювання
+        # ======================================
+        # ПР18 — Вимикач AI
+        # ======================================
+
+        ai_enabled=read_bool_env(
+            "AI_ENABLED",
+            True,
+        ),
+
+        # ======================================
+        # Сховище та журнал
+        # ======================================
+
         db_path=os.getenv(
             "DB_PATH",
             "data/study.db",
@@ -214,13 +333,22 @@ def load_settings() -> Settings:
             "pr15",
         ),
 
-        # Mock-провайдер
+        # ======================================
+        # Mock
+        # ======================================
+
         mock_delay_ms=int(
-            os.getenv("MOCK_DELAY_MS", "0")
+            os.getenv(
+                "MOCK_DELAY_MS",
+                "0",
+            )
         ),
 
         mock_failure_rate=float(
-            os.getenv("MOCK_FAILURE_RATE", "0")
+            os.getenv(
+                "MOCK_FAILURE_RATE",
+                "0",
+            )
         ),
 
         mock_failure_kind=os.getenv(
@@ -228,7 +356,10 @@ def load_settings() -> Settings:
             "none",
         ),
 
-        # Запис та відтворення
+        # ======================================
+        # Recorded provider
+        # ======================================
+
         record_mode=os.getenv(
             "RECORD_MODE",
             "replay",
@@ -239,13 +370,22 @@ def load_settings() -> Settings:
             "tests/recordings/study",
         ),
 
+        # ======================================
         # Бюджет та контекст
+        # ======================================
+
         daily_call_limit=int(
-            os.getenv("DAILY_CALL_LIMIT", "40")
+            os.getenv(
+                "DAILY_CALL_LIMIT",
+                "40",
+            )
         ),
 
         context_max_chars=int(
-            os.getenv("CONTEXT_MAX_CHARS", "10000")
+            os.getenv(
+                "CONTEXT_MAX_CHARS",
+                "10000",
+            )
         ),
 
         prompt_file=os.getenv(
@@ -254,17 +394,13 @@ def load_settings() -> Settings:
         ),
 
         # ======================================
-        # RAG — ПР16
+        # ПР16 — RAG
         # ======================================
 
-        rag_enabled=os.getenv(
+        rag_enabled=read_bool_env(
             "RAG_ENABLED",
-            "false",
-        ).strip().lower() in {
-            "true",
-            "1",
-            "yes",
-        },
+            False,
+        ),
 
         rag_embedding_model=os.getenv(
             "RAG_EMBEDDING_MODEL",
@@ -277,11 +413,17 @@ def load_settings() -> Settings:
         ),
 
         rag_top_k=int(
-            os.getenv("RAG_TOP_K", "3")
+            os.getenv(
+                "RAG_TOP_K",
+                "3",
+            )
         ),
 
         rag_min_score=float(
-            os.getenv("RAG_MIN_SCORE", "0.25")
+            os.getenv(
+                "RAG_MIN_SCORE",
+                "0.25",
+            )
         ),
     )
 

@@ -55,10 +55,57 @@ from app.orchestration import Orchestrator
 from app.providers.mock import MockProvider
 from app.providers.openai_compat import OpenAICompatibleProvider
 from app.providers.recorded import RecordedProvider
+from app.reliability import SlidingWindowRateLimiter
 from app.service import StudyService
 from app.settings import Settings, load_settings
 from app.storage import SQLiteStorage
 from app.telemetry import Telemetry
+
+
+def load_rate_limit_config() -> tuple[int, float]:
+    """
+    ПР18 — параметри власного ліміту.
+
+    STUDYAI_RATE_LIMIT_MAX:
+        Максимум запитів за вікно.
+
+    STUDYAI_RATE_LIMIT_WINDOW_S:
+        Тривалість вікна в секундах.
+
+    Значення за замовчуванням:
+        30 запитів за 60 секунд.
+    """
+
+    max_requests = int(
+        os.getenv(
+            "STUDYAI_RATE_LIMIT_MAX",
+            "30",
+        )
+    )
+
+    window_s = float(
+        os.getenv(
+            "STUDYAI_RATE_LIMIT_WINDOW_S",
+            "60",
+        )
+    )
+
+    if not 1 <= max_requests <= 10000:
+        raise ValueError(
+            "STUDYAI_RATE_LIMIT_MAX "
+            "має бути від 1 до 10000."
+        )
+
+    if (
+        not math.isfinite(window_s)
+        or not 1 <= window_s <= 86400
+    ):
+        raise ValueError(
+            "STUDYAI_RATE_LIMIT_WINDOW_S "
+            "має бути від 1 до 86400."
+        )
+
+    return max_requests, window_s
 
 
 def create_app(
@@ -80,6 +127,14 @@ def create_app(
         settings = load_settings()
 
     settings.validate()
+
+    max_requests, window_s = (
+        load_rate_limit_config()
+    )
+
+    # ==========================================
+    # 2. Телеметрія
+    # ==========================================
 
     telemetry = Telemetry(
         settings.log_file
@@ -183,6 +238,15 @@ def create_app(
     # 9. Власний ліміт частоти
     # ==========================================
 
+    rate_limiter = SlidingWindowRateLimiter(
+        max_requests=max_requests,
+        window_s=window_s,
+    )
+
+    # ==========================================
+    # 10. FastAPI
+    # ==========================================
+
     api = FastAPI(
         title="AI Study Assistant",
         description=(
@@ -199,6 +263,7 @@ def create_app(
     api.state.orchestrator = orchestrator
     api.state.gateway = gateway
     api.state.telemetry = telemetry
+    api.state.rate_limiter = rate_limiter
 
     started_at = time.monotonic()
 
@@ -254,6 +319,39 @@ def create_app(
         }
 
         # ПР18 — Retry-After у HTTP-заголовку.
+        retry_after = getattr(
+            err,
+            "retry_after_s",
+            None,
+        )
+
+        if (
+            err.retryable
+            and err.status_code in {
+                429,
+                503,
+                504,
+            }
+            and retry_after is not None
+        ):
+            try:
+                seconds = float(
+                    retry_after
+                )
+            except (ValueError, TypeError):
+                seconds = 0.0
+
+            if (
+                math.isfinite(seconds)
+                and seconds > 0
+            ):
+                headers["Retry-After"] = str(
+                    max(
+                        1,
+                        math.ceil(seconds),
+                    )
+                )
+
         telemetry.emit(
             request_id,
             "controller",
@@ -408,12 +506,30 @@ def create_app(
             else "unavailable"
         )
 
-        rag_enabled = bool(getattr(settings, "rag_enabled", False))
+        gateway_status = gateway.health()
+        breaker_status = gateway_status["breaker"]
+
+        provider_available = (
+            breaker_status["state"] != "open"
+        )
+
+        system_ok = (
+            storage_status == "ok"
+            and provider_available
+        )
+
+        rag_enabled = bool(
+            getattr(
+                settings,
+                "rag_enabled",
+                False,
+            )
+        )
 
         return {
             "status": (
                 "ok"
-                if storage_status == "ok"
+                if system_ok
                 else "degraded"
             ),
             "version": settings.app_version,
@@ -421,6 +537,19 @@ def create_app(
             "model": settings.llm_model,
             "mode": mode,
             "storage": storage_status,
+            "breaker": breaker_status,
+            "limits": {
+                "client_requests_per_window": (
+                    max_requests
+                ),
+                "window_seconds": window_s,
+                "max_concurrent": gateway_status[
+                    "max_concurrent"
+                ],
+                "queue_timeout_s": gateway_status[
+                    "queue_timeout_s"
+                ],
+            },
             "extra": {
                 "rag": (
                     "enabled"
@@ -508,6 +637,27 @@ def create_app(
         # Використовуємо адресу з безпосереднього
         # HTTP-з'єднання, а не довіряємо
         # довільному X-Forwarded-For.
+        client_id = (
+            request.client.host
+            if request.client is not None
+            else "unknown"
+        )
+
+        try:
+            rate_limiter.check(
+                client_id
+            )
+
+        except AppError as err:
+            return error_response(
+                err,
+                request_id,
+            )
+
+        # --------------------------------------
+        # 16.3. Створення завдання
+        # --------------------------------------
+
         if key is not None:
             # Хешуємо канонічний вміст запиту.
             payload = json.dumps(
@@ -658,6 +808,23 @@ def create_app(
 
             # Якщо сервіс зберіг Retry-After,
             # передаємо його клієнту.
+            retry_after = err_data.get(
+                "retry_after_s"
+            )
+
+            # Для відкритого Circuit Breaker
+            # час можна отримати з його стану.
+            if (
+                retry_after is None
+                and err.kind == "circuit_open"
+            ):
+                retry_after = gateway.health()[
+                    "breaker"
+                ]["retry_after_s"]
+
+            if retry_after is not None:
+                err.retry_after_s = retry_after
+
             return error_response(
                 err,
                 request_id,
